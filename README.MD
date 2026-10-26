@@ -62,11 +62,11 @@ Farever/
         └── sfcursor/
             └── sfcursor.hdll
 ```
-![SimpleLFG](MoltenLFG.png) 
+
 
 4. Launch Farever and press **F5**, or click **Chat** beside the game's bottom-right menu.
    Free the game cursor to interact with the panel.
-
+![SimpleLFG](MoltenLFG.png) 
 > [!NOTE]
 > **Updating:** replace the addon with Farever closed. Existing drafts, templates,
 > themes, filters and ignores are retained. The shared dependency packages are
