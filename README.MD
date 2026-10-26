@@ -62,7 +62,8 @@ Farever/
         └── sfcursor/
             └── sfcursor.hdll
 ```
-![SimpleLFG](MoltenLFG.png)
+![SimpleLFG](MoltenLFG.png) 
+
 4. Launch Farever and press **F5**, or click **Chat** beside the game's bottom-right menu.
    Free the game cursor to interact with the panel.
 
