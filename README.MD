@@ -22,7 +22,7 @@
 
 <p align="center"><img src="docs/media/simplelfg.png" alt="SimpleLFG" width="500"></p>
 
-![SimpleLFG](MoltenLFG.png)
+
 SimpleLFG is a standalone interface mod for **Farever**, built on the
 [HLX Modding Framework](https://hlx-framework.github.io/). Browse recruiting
 messages, find players for a run, advertise your group and keep conversations
@@ -62,7 +62,7 @@ Farever/
         └── sfcursor/
             └── sfcursor.hdll
 ```
-
+![SimpleLFG](MoltenLFG.png)
 4. Launch Farever and press **F5**, or click **Chat** beside the game's bottom-right menu.
    Free the game cursor to interact with the panel.
 
