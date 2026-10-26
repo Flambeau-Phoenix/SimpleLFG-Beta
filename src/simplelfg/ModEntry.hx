@@ -35,7 +35,7 @@ class ModEntry {
         native.board=engine.board;
         native.install();
         ImGui.register(HlxRuntime.moduleName(),frame);
-        trace("SimpleLFG v1.1 interface loaded. Panel key: "+KeyBinding.label(engine.config.panelKey,engine.config.panelMods)+". UI scope failures are traced once per site.");
+        trace("SimpleLFG v1.2b loaded. Panel key: "+KeyBinding.label(engine.config.panelKey,engine.config.panelMods)+". UI scope failures are traced once per site.");
     }
     static function frame():Void {
         try {

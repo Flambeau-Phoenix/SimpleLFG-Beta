@@ -1,11 +1,8 @@
-# v1.1 interface candidate - 2026-10-26
+# v1.2b - 2026-10-26
 
-- Rebuilt the window as a menu-bar shell (File / View / Party / Help) with a navigation row and an always-visible party strip. The shared look now comes from a copy of the host UI kit under `src/simplelfg/ui` (package renamed; host-only couplings cut), so cards, buttons, headers and themes match the SolarFlare editors without a runtime dependency.
-- Browse is a sortable, resizable, clipped table (context, target, type, player, party, source, age, message) beside a docked inspector. The auto-growing sidebar and overlay drawer are gone. Keyboard: Up/Down, Enter whisper, Delete hide, Ctrl+F search, Ctrl+1..5 pages.
-- People shows friends and same-realm players in a table with level and zone, your friend code with Copy, add-by-code with live validation, the party roster, Invite per row, and two-step Remove friend.
-- Party: read-only roster from the installed game group; two-step Leave in the strip, menu and People page; optional Leave chip beside the LFG button (off by default). All verbs use the game's own checks and callbacks; nothing is accepted on anyone's behalf.
-- Panel key is rebindable (capture or pick from a list, optional Ctrl/Shift/Alt). Default stays F5. Letters and digits require a modifier. A one-time lookup warns when Farever or a companion overlay already uses the key.
-- Post templates are a table with Load and two-step Delete; Messages lists conversations in a table; Settings gained Privacy and contacts as its own page; theme sliders became typed fields.
+- One drop-in install: a single zip extracted into the Farever folder carries the mod, SFimgui and SFCursor. The compatibility.json files are gone because they made Vortex report conflicts; the supported game build is in the README.
+- Added SECURITY.md and docs/INTERFACE.md, and the relay source with its tests under server/.
+- Window minimum 1024x768, default 1180x768; Post page reworked (preview on top, activity and difficulty on one row, class and party size on another); card padding fixed; right-click window menu.
 - Results appear as toasts instead of inline status lines.
 - Default window is 1180x768 and the minimum is 1024x768 (smaller saved sizes are raised); the tabs line up against the wordmark.
 - The panel key now works while the game owns the pointer (camera mode): it opens and closes the window, which stays visible but non-interactive until the cursor is freed. The window no longer closes when the pointer locks; logout, loading and cutscenes still close it. The key is also read from the engine key state, so it works during plain play.
@@ -14,6 +11,15 @@
 - Quicker party access: the Party menu opens with a status line and Leave party, then "Invite to party" lists nearby friends, friends elsewhere (with their zone) and other nearby players. The strip now has an Invite button when solo as well, which opens the same list at the pointer instead of changing page.
 - Fixed the party strip overlapping the page tabs at narrow widths. It now shares the tab row only when it fits, otherwise it takes its own right-aligned row, and it sits inside a bordered frame so it reads as one anchored block.
 - Added the transparent SimpleLFG wordmark: it sits at the left of the tab row (click for About, hidden on small windows, View > Show logo to turn it off) and in the About popup. The image is embedded as a resource (assets/simpleLFGbig.png).
+
+# v1.1 - 2026-10-26 (SolarFlare interface)
+
+- Rebuilt the window as a menu-bar shell (File / View / Party / Help) with a navigation row and an always-visible party strip. The shared look now comes from a copy of the host UI kit under `src/simplelfg/ui` (package renamed; host-only couplings cut), so cards, buttons, headers and themes match the SolarFlare editors without a runtime dependency.
+- Browse is a sortable, resizable, clipped table (context, target, type, player, party, source, age, message) beside a docked inspector. The auto-growing sidebar and overlay drawer are gone. Keyboard: Up/Down, Enter whisper, Delete hide, Ctrl+F search, Ctrl+1..5 pages.
+- People shows friends and same-realm players in a table with level and zone, your friend code with Copy, add-by-code with live validation, the party roster, Invite per row, and two-step Remove friend.
+- Party: read-only roster from the installed game group; two-step Leave in the strip, menu and People page; optional Leave chip beside the LFG button (off by default). All verbs use the game's own checks and callbacks; nothing is accepted on anyone's behalf.
+- Panel key is rebindable (capture or pick from a list, optional Ctrl/Shift/Alt). Default stays F5. Letters and digits require a modifier. A one-time lookup warns when Farever or a companion overlay already uses the key.
+- Post templates are a table with Load and two-step Delete; Messages lists conversations in a table; Settings gained Privacy and contacts as its own page; theme sliders became typed fields.
 - New offline suite ShellTest; layout, migration and social suites updated. In-game visual and input acceptance is pending.
 
 # 0.1.12-test - 2026-10-25

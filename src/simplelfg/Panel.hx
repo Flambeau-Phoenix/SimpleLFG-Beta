@@ -15,7 +15,7 @@ import simplelfg.ui.UiChrome;
 
 /** Window lifetime, geometry and shared-style scope; workspaces own their editors. */
 class Panel {
-    public static inline var VERSION="SimpleLFG v1.1";
+    public static inline var VERSION="SimpleLFG v1.2b";
     var engine:Engine;var native:NativeChat;
     var palette=new Palette();var input=new InputController();var chrome:Chrome;
     var artwork=new LauncherArt();

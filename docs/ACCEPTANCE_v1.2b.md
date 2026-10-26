@@ -1,4 +1,4 @@
-# v1.1 in-game acceptance
+# v1.2b in-game acceptance
 
 Offline checks prove model behaviour, source boundaries and import availability. They do not prove
 appearance, input or native friend and party behaviour. Run these in Farever and report the first failure.

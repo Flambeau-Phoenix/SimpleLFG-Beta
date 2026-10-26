@@ -1,4 +1,4 @@
-<h1 align="center">SimpleLFG v1.1</h1>
+<h1 align="center">SimpleLFG v1.2b</h1>
 
 <p align="center">
   <strong>An in-game LFG/LFM recruiting board for Farever</strong><br>
@@ -11,7 +11,7 @@
   <a href="https://webgameuniverse.com/lfg">Public board</a> ·
   <a href="CHANGELOG.md">Changelog</a> ·
   <a href="SECURITY.md">Security</a> ·
-  <a href="docs/ACCEPTANCE_v1.1.md">Acceptance run</a>
+  <a href="docs/ACCEPTANCE_v1.2b.md">Acceptance run</a>
 </p>
 
 - Browse listings and people with sortable, resizable tables featuring a docked inspector, right-click menus and keyboard control.
@@ -21,7 +21,7 @@
 
 ---
 
-## What's new in v1.1
+## What's new in v1.1 and v1.2b
 
 - A menu-bar window (File, View, Party, Help) with a tab row and an always-visible party strip.
 - Browse and People are sortable, resizable tables with a docked inspector, right-click menus and keyboard control.
@@ -54,7 +54,7 @@
 - SFimgui (`sfimgui.hdll`)
 - SFCursor (`sfcursor.hdll`)
 
-> **Important:** SFimgui and SFCursor are required native plugins and must be installed in the correct HLX plugin directories. Compatible versions of both are included in `SimpleLFG-v1.1.zip`.
+> **Important:** SFimgui and SFCursor are required native plugins and must be installed in the correct HLX plugin directories. Compatible versions of both are included in `SimpleLFG-v1.2b.zip`.
 
 **SolarFlare is NOT required.**
 
@@ -79,7 +79,7 @@ Vortex compatibility depends on the installation support configured for Farever.
 
 1. Close Farever completely.
 2. Install the HLX Modding Framework ([releases](https://github.com/hlx-framework/hlx-core/releases)).
-3. Download `SimpleLFG-v1.1.zip`.
+3. Download `SimpleLFG-v1.2b.zip`.
 4. Extract the archive directly into your **Farever game directory**, merging with the existing `hlx` folder. It carries everything: the mod, the SFimgui renderer and the SFCursor input helper. (`dist/hlx` in this repository is the same content, unzipped.)
 5. Launch Farever.
 6. Press **F5** (rebindable) or click the in-game **Chat** button.

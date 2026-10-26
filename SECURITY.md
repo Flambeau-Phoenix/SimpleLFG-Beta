@@ -50,10 +50,10 @@ secret header; the proxy does not forward that path. Neither the board nor the p
 
 - A static review of release 0.1.12 (Snyk code and dependency scans, 2026-10-26) found 0 high and 0 medium issues, and 12 low findings in
   local development tooling that is not shipped; the 13 Python dependencies had no known vulnerable paths. Haxe is not covered by that
-  scanner. This review has not been repeated for v1.1; the v1.1 client changes are interface work, local friend and party calls, and one relay
+  scanner. This review has not been repeated for v1.2b; the v1.2b client changes are interface work, local friend and party calls, and one relay
   session fix.
 - Names and Steam codes are self-reported; an anonymous session does not prove who you are. Distributed abuse can be slowed, not prevented.
-  A clean scan does not prove the absence of vulnerabilities, and in-game acceptance of v1.1 is still pending.
+  A clean scan does not prove the absence of vulnerabilities, and in-game acceptance of v1.2b is still pending.
 
 ## Check it yourself
 
