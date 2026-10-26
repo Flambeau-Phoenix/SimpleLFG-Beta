@@ -1,0 +1,12 @@
+{
+  "name": "hl-imgui",
+  "url": "https://github.com/laymain/farever-mods",
+  "license": "MIT",
+  "tags": ["hashlink", "imgui", "modding"],
+  "description": "Haxe/HashLink bindings for Dear ImGui, backed by imgui.hdll",
+  "version": "0.0.5",
+  "classPath": "src",
+  "releasenote": "Add a bundled Latin/Greek/Cyrillic font (with an optional CJK fallback a player can drop in), Tab-driven input-text completion, ImGuiListClipper bindings, and several printf-style text widgets (bulletText, textColored, textWrapped, ...); a crashing mod panel no longer takes down ImGui rendering for every other mod.",
+  "contributors": ["laymain"],
+  "dependencies": {}
+}

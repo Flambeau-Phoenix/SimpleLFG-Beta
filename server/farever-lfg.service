@@ -1,0 +1,36 @@
+[Unit]
+Description=SimpleLFG private relay
+After=network.target
+
+[Service]
+Type=simple
+User=farever-lfg
+Group=www-data
+WorkingDirectory=/srv/farever-lfg
+EnvironmentFile=/etc/farever-lfg/admin.env
+Environment=PYTHONUNBUFFERED=1
+Environment=LFG_MODERATION_DB=/srv/farever-lfg/data/moderation.sqlite
+Environment=LFG_RESTORE_FILE=/srv/farever-lfg/data/restore-listings.json
+ExecStart=/srv/farever-lfg/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8000 --workers 1 --proxy-headers --forwarded-allow-ips=127.0.0.1,::1 --limit-concurrency 256 --timeout-keep-alive 5 --timeout-graceful-shutdown 5 --no-access-log
+TimeoutStopSec=15
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/farever-lfg/data
+UMask=0077
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+MemoryMax=512M
+CPUQuota=100%
+TasksMax=64
+LimitNOFILE=4096
+
+[Install]
+WantedBy=multi-user.target

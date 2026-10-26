@@ -1,0 +1,12 @@
+build/
+__pycache__/
+.pytest_cache/
+tools/abi/bin/
+tools/abi/obj/
+.env
+.env.*
+*.key
+*.tmp
+server/data/
+server/restore-listings.json
+evidence/current-data/

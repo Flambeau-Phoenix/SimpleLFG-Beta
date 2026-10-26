@@ -1,0 +1,15 @@
+{
+  "CMakeLists.txt": "11adb87dfcc2f3cfa0f100acc41a5ba760d8ed62e70b310217150fd6124765ff",
+  "cursor.cpp": "17de46af2b8a6ba5323d7553c94a62c692090c9101cc74335f9adf39959ae506",
+  "extra_input.cpp": "85be6acdabd1d7e54edd6dd0177cee27650c8105e037278363ed4188b2f040a4",
+  "extra_policy.h": "bfeeabed01402e2a868fa3fead2e7031ea7853eedad2429f9e31254966f8f2b7",
+  "extra_tests.cpp": "881785a51298c7aba945867b37d87a48b4e120c46803ccd3fb66e338038b12e9",
+  "extra_win32_tests.cpp": "91425dc75cc302f1663c9c89f75e771720a1e06e41ab9b7c1f045e69f004365a",
+  "LICENSE": "486f006029ad13266cbd2f1329d17a2460375b7ce60df53c23fd5096e4be2fc0",
+  "mouse_input.cpp": "4543893250063e42c27bd7e40302984e8ac2a634101bc4c93cbe6858907edbb4",
+  "mouse_policy.h": "8baf28e814f538cc7a9dfe537d7e839cbd2bd65b1a940f5d2b02e43b2e7132a8",
+  "mouse_win32_tests.cpp": "8e22248ccac88e340b5a415f19a868b2e1faa6a2ab34ec7fccdd6c89194ae89c",
+  "README.md": "f752a100ed220af00fadb8a81322f41d238f83ecf7de09c486bbd6a32456748b",
+  "shortcut_input.cpp": "267d41c564060e00c901543fe04f561a86585a95ccb8b3076d7f2f77c2c6dff9",
+  "tests.cpp": "a6cc972a9d7a21ef1bf464ad2abfa6061a0370a7e6be788473eea632f1a05806"
+}
