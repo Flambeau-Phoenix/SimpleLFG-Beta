@@ -31,13 +31,13 @@ class UpdateTest {
         var alerts=new Alerts();c.alertsEnabled=true;c.watchActivities=[board.entries[0].activityId];alerts.update(board,c,"me",100);check(alerts.unread==1,"canonical watch matches");
         c.watchActivities=["custom:crab"];check(Alerts.matches(board.entries[0],c),"custom nickname watch matches canonical target");
         var legacy=Config.decode('{"version":2,"width":960,"height":640,"draft":{"activity":"Crab","roles":"healer","tanks":1,"healers":1,"dps":2,"note":"My own healer note","bonusRuns":true},"templates":[{"activity":"Crab","roles":"Tank","bonusRuns":true}]}');
-        check(legacy.width==1440&&legacy.height==900&&legacy.migrated,"one time enlargement");var restored=Config.decode(legacy.encode());check(restored.width==1440&&restored.height==900&&!restored.migrated,"geometry migration persists once");
+        check(legacy.width==1180&&legacy.height==768&&legacy.migrated,"one time enlargement");var restored=Config.decode(legacy.encode());check(restored.width==1180&&restored.height==768&&!restored.migrated,"geometry migration persists once");
         check(legacy.draft.note=="My own healer note"&&legacy.templates[0].bonusRuns,"legacy notes and templates preserved");
         check(legacy.encode().indexOf('"roles"')<0&&legacy.encode().indexOf('"tanks"')<0,"role fields removed from saves");
         check(Parser.preview(legacy.draft).indexOf("Bonus Runs")>=0&&Parser.preview(legacy.draft).indexOf("Need")<0,"legacy role counts absent from outgoing post");
         var defaults=Config.decode('{"version":2,"lfgWords":["lfg","looking for group","looking for a group","looking to join"],"lfmWords":["lfm","lf#m","looking for more","recruiting","need","needs","seeking","join us","looking for"]}');check(defaults.lfgWords.length>4&&defaults.lfmWords.length>9,"untouched old defaults expanded");
         var custom=Config.decode('{"version":2,"lfgWords":[],"lfmWords":["squad"]}');check(custom.lfgWords.length==0&&custom.lfmWords.length==1,"custom removals preserved");custom.mergeDefaults();check(custom.lfgWords.length>0&&custom.lfmWords.indexOf("squad")>=0,"merge retains custom phrase");
-        check(new Config().width==1440&&new Config().height==900,"new geometry default");
+        check(new Config().width==1180&&new Config().height==768,"new geometry default");
         var a=p.parse(event("LFM Crab"),new Config());var b=p.parse(event("LFM Ratsar"),new Config());a.senderName="Z";b.senderName="A";a.seen=110;b.seen=100;
         check(SortPolicy.listing(a,b,2,true)<0,"newest first default");check(SortPolicy.listing(a,b,1,true)>0,"player sort");check(SortPolicy.listing(a,b,0,true)<0,"target sort");
         var first:simplelfg.LootBrowser.LootLine={title:"Axe",description:"",detail:"",itemId:"a",key:"a",iconKey:"a",rarity:"Rare",itemType:"Weapon"};

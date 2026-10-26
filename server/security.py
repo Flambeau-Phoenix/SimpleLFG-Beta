@@ -87,7 +87,7 @@ class RequestGuard:
         request = Request(scope)
         original_send = send
         async def private_send(message):
-            if message['type'] == 'http.response.start' and (scope['path'] in ('/api/lfg/session', '/api/lfg/chat', '/api/lfg/privacy', '/api/lfg/post', '/api/lfg/events') or scope['path'].startswith('/internal/')):
+            if message['type'] == 'http.response.start' and (scope['path'].startswith('/api/lfg/') or scope['path'].startswith('/internal/')):
                 message['headers'] = [(k, v) for k, v in message.get('headers', []) if k.lower() != b'cache-control'] + [(b'cache-control', b'no-store')]
             await original_send(message)
         send = private_send

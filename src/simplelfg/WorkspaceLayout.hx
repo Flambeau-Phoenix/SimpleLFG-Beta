@@ -19,7 +19,7 @@ class WorkspaceLayout {
     public function update(w:Float,h:Float,scale:Float,post:Bool=false,leftContent:Float=300,rightContent:Float=260):Void {
         width=Math.max(1,w);h=Math.max(1,h);scale=Geometry.clamp(scale,0.85,1.5);
         actionHeight=post?34*scale+12:0;
-        previewHeight=post?Math.min(104*scale,Math.max(44,h*0.3)):0;
+        previewHeight=post?Math.min(132*scale,Math.max(56,h*0.26)):0;
         bodyHeight=Math.max(1,h-actionHeight-previewHeight-(post?24:0));
         var usable=Math.max(1,width-GAP);
         wide=width>=900 && usable*0.6>=440*scale && usable*0.4>=300*scale;

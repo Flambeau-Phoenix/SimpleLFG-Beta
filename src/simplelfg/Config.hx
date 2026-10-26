@@ -29,7 +29,7 @@ class Config {
     public var templates:Array<Draft> = [];
     public var ignored:Array<IgnoreRule> = [];
     public var width:Float = 1180;
-    public var height:Float = 740;
+    public var height:Float = 768;
     public var windowX:Float = -1;
     public var windowY:Float = -1;
     public var theme:String = "Midnight";
@@ -133,9 +133,9 @@ class Config {
         c.expirySeconds=Std.int(number(o,"expirySeconds",300,60,1800));
         c.textScale=number(o,"textScale",1,0.85,1.5);
         c.highContrast=flag(o,"highContrast",false); c.reminder=flag(o,"reminder",false);
-        c.width=number(o,"width",1180,520,32768); c.height=number(o,"height",740,360,32768);
+        c.width=number(o,"width",1180,1024,32768); c.height=number(o,"height",768,768,32768);
         if(number(o,"geometryVersion",0,0,2)<2){
-            c.width=Math.max(1180,c.width);c.height=Math.max(740,c.height);c.migrated=true;
+            c.width=Math.max(1180,c.width);c.height=Math.max(768,c.height);c.migrated=true;
         }
         c.windowX=number(o,"windowX",-1,-1,32000);c.windowY=number(o,"windowY",-1,-1,32000);
         c.theme=str(o,"theme",24,"Midnight");

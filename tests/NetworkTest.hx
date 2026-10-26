@@ -17,6 +17,7 @@ class MockRelay implements RelayTransport {
     public var ready:Array<RelayResult>=[];
     public var accept=true;
     public function new(){}
+    public static function legacy(t:RelayTransport):CrossServerRelay {var relay=new CrossServerRelay(t);relay.capabilitiesChecked=true;return relay;}
     public function submit(r:RelayRequest):Bool {if(!accept)return false;requests.push(r);return true;}
     public function drain():Array<RelayResult> {var rows=ready;ready=[];return rows;}
     public function cancel():Void {requests=[];ready=[];}
@@ -72,7 +73,7 @@ class NetworkTest {
     }
     static function session():String return haxe.Json.stringify({session_id:"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",token:"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa."+StringTools.lpad("b","b",64),expires_in:1800});
     static function lifecycle():Void {
-        var m=new MockRelay();var relay=new CrossServerRelay(m);var a=new FakeChat();a.current.playerName="Test Hero";
+        var m=new MockRelay();var relay=MockRelay.legacy(m);var a=new FakeChat();a.current.playerName="Test Hero";
         var c=new Config();c.relayEnabled=false;c.steamId="123456";var e=new Engine(c,a,new Parser(simplelfg.TargetDefaults.activities()),relay);e.tick(100);
         ok(m.requests.length==0,"disabled relay has no network traffic");
         c.draft.activity="Crabgantua's Gorge";e.markDirty(100);e.tick(100);e.enqueue(e.action("post",e.preview,"All"));e.tick(100);
@@ -136,7 +137,7 @@ class NetworkTest {
         var retry=RelayHttpReader.read(new haxe.io.BytesInput(haxe.io.Bytes.ofString("HTTP/1.1 429 Too Many Requests\r\nRetry-After: 42\r\nContent-Length: 0\r\n\r\n")));
         ok(retry.retryAfter==42,"server cooldown survives HTTP transport");
         var m=new MockRelay();var a=new FakeChat();a.current.playerName="Hero";var c=new Config();c.steamId="1";
-        var e=new Engine(c,a,new Parser(simplelfg.TargetDefaults.activities()),new CrossServerRelay(m));e.relayVisible=false;e.tick(1);
+        var e=new Engine(c,a,new Parser(simplelfg.TargetDefaults.activities()),MockRelay.legacy(m));e.relayVisible=false;e.tick(1);
         ok(m.requests.length==0,"closed window performs no network requests");
         e.relayVisible=true;e.tick(2);ok(m.requests.length==2,"opening window starts snapshot and session");
         m.finish(e.relay.generation,"session",session());e.tick(2);m.finish(e.relay.generation,"event_open","");e.tick(2);

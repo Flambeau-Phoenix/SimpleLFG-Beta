@@ -10,11 +10,12 @@
 <p align="center">
   <a href="https://webgameuniverse.com/lfg">Public board</a> ·
   <a href="CHANGELOG.md">Changelog</a> ·
+  <a href="SECURITY.md">Security</a> ·
   <a href="docs/ACCEPTANCE_v1.1.md">Acceptance run</a>
 </p>
 
 - Browse listings and people with sortable, resizable tables featuring a docked inspector, right-click menus and keyboard control.
-- **No account required. Fully open source. No SolarFlare dependency.**
+- **No account required. Fully open source (client and relay). No SolarFlare dependency.**
 - SimpleLFG is a standalone interface mod built on the **HLX Modding Framework**. The download carries everything: the mod, the SFimgui renderer and the SFCursor input helper.
 - Posting, whispering, friend requests, party invitations and leaving a party are always explicit actions, and the other player always accepts through the game's normal prompts.
 
@@ -48,7 +49,7 @@
 
 **Required:**
 
-- Farever (compatible game build, checked via `compatibility.json`)
+- Farever, game build with `hlboot.dat` SHA-256 `9f48618bbcc421458c852c298d5ebec9512bfae8a8381816e0e770803601f1ec`. SimpleLFG checks this before registering anything and stays disabled on other builds.
 - HLX Modding Framework ([link](https://hlx-framework.github.io/))
 - SFimgui (`sfimgui.hdll`)
 - SFCursor (`sfcursor.hdll`)
@@ -79,7 +80,7 @@ Vortex compatibility depends on the installation support configured for Farever.
 1. Close Farever completely.
 2. Install the HLX Modding Framework ([releases](https://github.com/hlx-framework/hlx-core/releases)).
 3. Download `SimpleLFG-v1.1.zip`.
-4. Extract the archive directly into your **Farever game directory**, merging with the existing `hlx` folder. It carries everything: the mod, the SFimgui renderer and the SFCursor input helper.
+4. Extract the archive directly into your **Farever game directory**, merging with the existing `hlx` folder. It carries everything: the mod, the SFimgui renderer and the SFCursor input helper. (`dist/hlx` in this repository is the same content, unzipped.)
 5. Launch Farever.
 6. Press **F5** (rebindable) or click the in-game **Chat** button.
 
@@ -131,7 +132,7 @@ Public contact sharing is opt-in and starts off; Farever and Steam sharing are s
 - Steam contact information is optional and private by default.
 - Public sharing of Steam contact information requires confirmation.
 
-Details: [docs/SOCIAL_IMPLEMENTATION.md](docs/SOCIAL_IMPLEMENTATION.md).
+Details: [SECURITY.md](SECURITY.md) and [docs/SOCIAL_IMPLEMENTATION.md](docs/SOCIAL_IMPLEMENTATION.md).
 
 ---
 
@@ -140,12 +141,12 @@ Details: [docs/SOCIAL_IMPLEMENTATION.md](docs/SOCIAL_IMPLEMENTATION.md).
 SimpleLFG is developed in **Haxe 4** and compiled to HashLink bytecode.
 
 - Fully open-source addon.
-- Checks supported Farever builds before registering anything (`compatibility.json`).
+- Checks the Farever build before registering anything; the supported fingerprint is listed under Requirements.
 - Uses the HLX Modding Framework.
 - Does not require SolarFlare.
 - Does not require a Steam restart or environment variables.
 
-`src/simplelfg` is the mod's own Haxe source, including `src/simplelfg/ui`, a small interface kit adapted for this mod. `assets/` holds what `compile.hxml` embeds. To build you also need your own generated GameLib for the supported game build and the HLX runtime sources, which are not included.
+`src/simplelfg` is the mod's own Haxe source, including `src/simplelfg/ui`, a small interface kit adapted for this mod. `assets/` holds what `compile.hxml` embeds. Beside it: `server/` is the relay source (see `docs/INTERFACE.md` for how the game and the website talk to it), `tests/` and `tools/` the checks. To build you also need your own generated GameLib for the supported game build and the HLX runtime sources, which are not included.
 
 ---
 

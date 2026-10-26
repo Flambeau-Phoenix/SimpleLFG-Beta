@@ -3,7 +3,7 @@ package simplelfg;
 class Geometry {
     /** Proportions the interface was laid out for (also the default size). */
     public static inline var DESIGN_W:Float=1180;
-    public static inline var DESIGN_H:Float=740;
+    public static inline var DESIGN_H:Float=768;
     /** Largest design-proportioned size at or below `width` that fits the screen and the window minimums. */
     public static function designFit(width:Float,maxW:Float,maxH:Float,minW:Float,minH:Float):{w:Float,h:Float} {
         var w=clamp(width,minW,maxW);var h=w*DESIGN_H/DESIGN_W;

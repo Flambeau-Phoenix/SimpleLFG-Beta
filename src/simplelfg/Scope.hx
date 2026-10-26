@@ -59,7 +59,7 @@ class Scope {
         ImGui.tableNextRow();ImGui.tableSetColumnIndex(0);ImGui.alignTextToFramePadding();wrapped(label);
         ImGui.tableSetColumnIndex(1);ImGui.setNextItemWidth(-1);
     }
-    static var cellIds=["##cell0","##cell1","##cell2"];
+    static var cellIds=["##cell0","##cell1","##cell2","##cell3"];
     static var inlinePadding=new ImVec2(6,2);
     static var cellAvailable=new ImVec2();
     public static function inlineGroup(id:String,count:Int,cell:Int->Float->Void):Void {
@@ -68,6 +68,19 @@ class Scope {
         var error:Dynamic=null;
         try {
             for(i in 0...count)ImGui.tableSetupColumn(cellIds[i],ImGuiTableColumnFlags.WidthStretch,1);
+            ImGui.tableNextRow();
+            for(i in 0...count){ImGui.tableSetColumnIndex(i);ImGui.getContentRegionAvail(cellAvailable);ImGui.pushItemWidth(-1);var e:Dynamic=null;try cell(i,cellAvailable.x) catch(x:Dynamic)e=x;ImGui.popItemWidth();if(e!=null)throw e;}
+        }catch(e:Dynamic)error=e;
+        ImGui.endTable();ImGui.popStyleVar();if(error!=null)throw error;
+    }
+    /** Like inlineGroup, but each cell gets its own share of the row. */
+    public static function inlineWeighted(id:String,weights:Array<Float>,cell:Int->Float->Void):Void {
+        var count=Std.int(Math.min(weights.length,cellIds.length));
+        ImGui.pushStyleVar(ImGuiStyleVar.CellPadding,inlinePadding);
+        if(!ImGui.beginTable(id,count,ImGuiTableFlags.SizingStretchProp|ImGuiTableFlags.NoSavedSettings|ImGuiTableFlags.NoPadOuterX)){ImGui.popStyleVar();return;}
+        var error:Dynamic=null;
+        try {
+            for(i in 0...count)ImGui.tableSetupColumn(cellIds[i],ImGuiTableColumnFlags.WidthStretch,weights[i]);
             ImGui.tableNextRow();
             for(i in 0...count){ImGui.tableSetColumnIndex(i);ImGui.getContentRegionAvail(cellAvailable);ImGui.pushItemWidth(-1);var e:Dynamic=null;try cell(i,cellAvailable.x) catch(x:Dynamic)e=x;ImGui.popItemWidth();if(e!=null)throw e;}
         }catch(e:Dynamic)error=e;
@@ -94,9 +107,18 @@ class Scope {
         ImGui.endCombo();if(error!=null)throw error;
     }
     /** Individual options avoid the binding's NUL-truncating string conversion. */
+    static var optionSize=new ImVec2();static var popupMin=new ImVec2();static var popupMax=new ImVec2();
+    /** The popup is only as wide as its longest option (plus padding) and shows at most eight rows, like a normal combo. */
+    static function fitPopup(options:Array<String>):Void {
+        var widest:Float=0;
+        for(o in options){ImGui.calcTextSize(o,false,-1,optionSize);if(optionSize.x>widest)widest=optionSize.x;}
+        popupMin.x=widest+40;popupMin.y=0;popupMax.x=100000;popupMax.y=ImGui.getFrameHeightWithSpacing()*8+8;
+        ImGui.setNextWindowSizeConstraints(popupMin,popupMax);
+    }
     public static function choice(id:String,current:IntRef,options:Array<String>):Bool {
         if(options.length==0)return false;
         var index=current.get();if(index<0||index>=options.length){index=0;current.set(0);}
+        fitPopup(options);
         if(!ImGui.beginCombo(id,options[index]))return false;
         var changed=false;var error:Dynamic=null;
         try {

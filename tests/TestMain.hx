@@ -117,7 +117,7 @@ class TestMain {
         }
         var c=Config.decode('{"geometryVersion":1,"hotkey":99,"expirySeconds":-2,"textScale":99,"monitorAll":"bad","width":1,"draft":{"activity":"A\\nB","capacity":4,"members":8},"ignored":[{"id":"x","until":0}],"templates":[{}]}');
         eq(c.hotkey,5,"fixed F5 migration");eq(c.expirySeconds,60,"expiry clamp");eq(c.textScale,1.5,"scale clamp");eq(c.monitoredChannels.length,6,"all channel defaults");
-        eq(c.width,1440,"migration enlarges legacy width");eq(c.draft.members,3,"party members capped at three");eq(c.draft.activity,"A B","draft newline sanitized");
+        eq(c.width,1180,"migration enlarges legacy width");eq(c.draft.members,3,"party members capped at three");eq(c.draft.activity,"A B","draft newline sanitized");
         eq(c.ignored.length,1,"ignore loaded");eq(c.templates.length,1,"template loaded");
         var d=Config.decode(c.encode());eq(d.hotkey,c.hotkey,"roundtrip key");eq(d.draft.activity,c.draft.activity,"roundtrip draft");
         eq(d.ignored[0].id,"x","roundtrip ignore");ok(d.encode().indexOf("senderId")==-1,"no chat history persisted");

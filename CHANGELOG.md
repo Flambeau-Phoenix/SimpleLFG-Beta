@@ -7,7 +7,7 @@
 - Panel key is rebindable (capture or pick from a list, optional Ctrl/Shift/Alt). Default stays F5. Letters and digits require a modifier. A one-time lookup warns when Farever or a companion overlay already uses the key.
 - Post templates are a table with Load and two-step Delete; Messages lists conversations in a table; Settings gained Privacy and contacts as its own page; theme sliders became typed fields.
 - Results appear as toasts instead of inline status lines.
-- Default window is 1180x740 for new installs and legacy sizes below it; saved v2 sizes are kept.
+- Default window is 1180x768 and the minimum is 1024x768 (smaller saved sizes are raised); the tabs line up against the wordmark.
 - The panel key now works while the game owns the pointer (camera mode): it opens and closes the window, which stays visible but non-interactive until the cursor is freed. The window no longer closes when the pointer locks; logout, loading and cutscenes still close it. The key is also read from the engine key state, so it works during plain play.
 - The on-screen button is now a cel-shaded window of its own: drag it anywhere, and right-click for Lock Window, Transparent Window, Reset Position and Hide Button (the same menu shape as the overlay windows). Placement is stored as a fraction of the screen. The leave chip and unread badge follow it.
 - Fixed "Relay offline" while the relay was up: a malformed saved Steam ID (for example a pasted paragraph) silently blocked the private-message session. The session now connects without the Steam ID, a corrupt saved value is cleared on load, the menu bar distinguishes "listings only, no messaging session", and relay status changes are traced once to hlx.log.

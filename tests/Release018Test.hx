@@ -52,7 +52,7 @@ class Release018Test {
         ok(privateUpgrade.steamId=="123456"&&!privateUpgrade.shareSteamPublic,"privacy upgrade keeps a deliberately saved contact but requires new public consent");
         privateUpgrade.shareSteamPublic=true;
         ok(Config.decode(privateUpgrade.encode()).shareSteamPublic,"later explicit sharing consent persists");
-        var emptyTransport=new MockRelay();var emptyEngine=new Engine(privateDefaults,new FakeChat(),new Parser(TargetDefaults.activities()),new CrossServerRelay(emptyTransport));
+        var emptyTransport=new MockRelay();var emptyEngine=new Engine(privateDefaults,new FakeChat(),new Parser(TargetDefaults.activities()),MockRelay.legacy(emptyTransport));
         emptyEngine.relayVisible=true;emptyEngine.tick(100);
         var created=false;for(request in emptyTransport.requests)if(request.kind=="session"&&haxe.Json.parse(request.body).steam_id=="")created=true;
         ok(created,"private session connects with a blank Steam contact");
@@ -82,7 +82,7 @@ class Release018Test {
         ok(SteamContact.detach("")==""&&SteamContact.detach("[Steamworks]")=="[Steamworks]","empty composer and unrelated bracket text preserved");
         for(cursor in [false,true]){
             var transport=new MockRelay();var adapter=new FakeChat();adapter.current.playerName="Hero";adapter.current.cursorFree=cursor;
-            var config=new Config();config.steamId="123456";var engine=new Engine(config,adapter,new Parser(TargetDefaults.activities()),new CrossServerRelay(transport));
+            var config=new Config();config.steamId="123456";var engine=new Engine(config,adapter,new Parser(TargetDefaults.activities()),MockRelay.legacy(transport));
             engine.relayVisible=true;engine.tick(100);ok(transport.requests.length==2,"relay connects regardless of pointer mode");
             var generation=engine.relay.generation;adapter.current.cursorFree=!cursor;engine.tick(101);ok(engine.relay.generation==generation,"pointer transitions do not restart the relay session");
         }

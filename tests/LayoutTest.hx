@@ -24,20 +24,16 @@ class LayoutTest {
             var cols=WorkspaceLayout.columns(controlWidth,92*scale,3,12);
             check(cols>=1&&cols<=3,"role columns bounded");
             check(cols==1||(controlWidth-12*(cols-1))/cols>=92*scale-0.001,"role groups fit their cells");
-            var browse=new simplelfg.BrowseLayout();browse.update(w,scale,false);
-            check(browse.board==w&&browse.sidebar==0,"unselected board uses all width");
-            browse.update(w,scale,true);check(browse.sidebar>0&&browse.sidebar<=w,"sidebar fits");
-            check(browse.overlay||browse.board+browse.sidebar+12<=w+0.001,"selected panes never stack or escape");
-            // Overlays are intentionally overlapping; only the top drawer participates in this spatial fixture.
-            var cells:Array<Dynamic>=[];var ids:Array<String>=[];var height=200.0;
-            if(browse.overlay){cells.push({id:"drawer",x:w-browse.sidebar,y:0.0,width:browse.sidebar,height:height,row:0,textBounds:{x:w-browse.sidebar+4,y:4.0,width:browse.sidebar-8,height:16.0}});ids.push("drawer");}
-            else {cells.push({id:"board",x:0.0,y:0.0,width:browse.board,height:height,row:0,textBounds:{x:4.0,y:4.0,width:browse.board-8,height:16.0}});ids.push("board");cells.push({id:"details",x:browse.board+12,y:0.0,width:browse.sidebar,height:height,row:0,textBounds:{x:browse.board+16,y:4.0,width:browse.sidebar-8,height:16.0}});ids.push("details");}
-            cases.push({name:dims.w+"x"+dims.h+"@"+scale+"-"+post,width:w,contentHeight:height,gap:12,columns:browse.overlay?1:2,minCellWidth:200*scale,textLimited:true,rows:[{kind:"cells",y:0.0,height:height}],cells:cells,expectedIds:ids});
+            // Browse and People share this split: table on the left, docked inspector on the right.
+            var cells:Array<Dynamic>=[];var ids:Array<String>=["board"];var height=200.0;
+            cells.push({id:"board",x:0.0,y:0.0,width:l.leftWidth,height:height,row:0,textBounds:{x:4.0,y:4.0,width:l.leftWidth-8,height:16.0}});
+            if(l.wide){ids.push("inspector");cells.push({id:"inspector",x:l.rightX,y:0.0,width:l.rightWidth,height:height,row:0,textBounds:{x:l.rightX+4,y:4.0,width:l.rightWidth-8,height:16.0}});}
+            cases.push({name:dims.w+"x"+dims.h+"@"+scale+"-"+post,width:w,contentHeight:height,gap:12,columns:l.wide?2:1,minCellWidth:200*scale,textLimited:true,rows:[{kind:"cells",y:0.0,height:height}],cells:cells,expectedIds:ids});
         }
         var l=new WorkspaceLayout();l.update(899,500,1);check(!l.wide,"below usable-width breakpoint");l.update(900,500,1);check(l.wide,"at usable-width breakpoint");l.update(900,500,1.5);check(!l.wide,"large fonts require compact layout");l.update(1140,500,1.5);check(l.wide,"large fonts gain desktop panes when minima fit");
-        check(new Config().width==1440&&new Config().height==900,"new installation default");
-        var old=Config.decode('{"geometryVersion":1,"width":720,"height":480}');check(old.width==1440&&old.height==900,"legacy geometry enlarged once");
-        var missing=Config.decode('{}');check(missing.width==1440&&missing.height==900,"missing geometry uses new default");
+        check(new Config().width==1180&&new Config().height==768,"new installation default");
+        var old=Config.decode('{"geometryVersion":1,"width":720,"height":480}');check(old.width==1180&&old.height==768,"legacy geometry enlarged once");
+        var missing=Config.decode('{}');check(missing.width==1180&&missing.height==768,"missing geometry uses new default");
         var confirmation=new Confirmation();check(!confirmation.press("one"),"first delete only arms");check(!confirmation.press("two"),"different target never confirms old target");check(confirmation.press("two"),"second click confirms exact target");confirmation.press("one");confirmation.clear();check(!confirmation.press("one"),"closing or navigation cancels confirmation");
         var a=new Draft();var b=new Draft();var c=new Draft();var index=new TemplateRows();index.update([a,b,c]);var second=index.rows[1].id;
         index.update([b,c]);check(index.rows[0].id==second,"deletion before selection preserves template identity");index.update([c,b]);check(index.rows[1].id==second,"reordering preserves template identity");

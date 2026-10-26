@@ -82,7 +82,7 @@ class SettingsPanel {
     function drawControls():Void {
         switch(category.get()){
             case 0:chrome.header("General");Scope.properties("##generalProperties",propertyBody);
-                chrome.gap();if(chrome.confirm("Reset window###confirm",confirm,"resetWindow")){var c=engine.config;c.windowX=-1;c.windowY=-1;c.width=1180;c.height=740;resetGeometry=true;changed();}
+                chrome.gap();if(chrome.confirm("Reset window###confirm",confirm,"resetWindow")){var c=engine.config;c.windowX=-1;c.windowY=-1;c.width=1180;c.height=768;resetGeometry=true;changed();}
                 chrome.note("Your draft, templates, ignored players and contacts are saved automatically.");
             case 1:chrome.header("Privacy and contacts");Scope.properties("##privacyProperties",privacyBody);
                 if(shareConfirmation){

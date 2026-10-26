@@ -29,12 +29,12 @@ class Panel {
     var navAvailable=new ImVec2();var navSize=new ImVec2();var navText=new ImVec2();var stripPos=new ImVec2();
     var open=new BoolRef(false);var forceBrowse=false;var nextSize=true;var now:Float=0;
     var size=new ImVec2();var position=new ImVec2();var measured=new ImVec2();var measuredPosition=new ImVec2();
-    var minimum=new ImVec2(520,360);var maximum=new ImVec2(1800,1200);
+    var minimum=new ImVec2(1024,768);var maximum=new ImVec2(1800,1200);
     var toastPosition=new ImVec2();var toastSize=new ImVec2(350,150);
     var screenW:Float=0;var screenH:Float=0;
     var activeTab:Int=0;
     var themeRevision=-1;var toastSerial=0;var toastTone=new FeedbackTone();
-    var quickInvite=false;var logoPos=new ImVec2();var logoSize=new ImVec2();var uv0=new ImVec2(0,0);var uv1=new ImVec2(1,1);var leavePrompt=false;var shortcutsPrompt=false;var aboutPrompt=false;var partyMenuWanted=false;
+    var quickInvite=false;var navY:Float=-1;var logoPos=new ImVec2();var logoSize=new ImVec2();var uv0=new ImVec2(0,0);var uv1=new ImVec2(1,1);var leavePrompt=false;var shortcutsPrompt=false;var aboutPrompt=false;var partyMenuWanted=false;
     var menuBody:Void->Void;var fileBody:Void->Void;var viewBody:Void->Void;var partyBody:Void->Void;var helpBody:Void->Void;var textSizeBody:Void->Void;var themeBody:Void->Void;var inviteBody:Void->Void;
     var windowMenuBody:Void->Void;var leaveBody:Void->Void;var shortcutsBody:Void->Void;var aboutBody:Void->Void;
     var scales=[0.85,1.0,1.25,1.5];var scaleNames=["85%","100%","125%","150%"];var themeNames=["Midnight","Slate","Warm"];
@@ -61,7 +61,7 @@ class Panel {
             ThemePalette.applyHost(c.highContrast?0x000000:c.background,c.highContrast?0x171717:c.surface,c.accent,c.highContrast?0xFFFFFF:c.foreground,c.opacity);
         }
         maximum.x=Math.max(1,native.screenWidth);maximum.y=Math.max(1,native.screenHeight);
-        minimum.x=Math.min(520,maximum.x);minimum.y=Math.min(360,maximum.y);
+        minimum.x=Math.min(1024,maximum.x);minimum.y=Math.min(768,maximum.y);
         if(engine.config.migrated){
             engine.config.width=Geometry.clamp(engine.config.width,minimum.x,maximum.x);engine.config.height=Geometry.clamp(engine.config.height,minimum.y,maximum.y);
             engine.config.windowX=Geometry.x(engine.config,native.screenWidth);engine.config.windowY=Geometry.y(engine.config,native.screenHeight);
@@ -175,17 +175,17 @@ class Panel {
             tabChoice.set(navOrder.indexOf(activeTab));ImGui.setNextItemWidth(180*scale);
             if(Scope.choice("##mainNavigation",tabChoice,navNames))activate(navOrder[tabChoice.get()]);
         }else for(i in 0...navOrder.length){
-            if(i>0)ImGui.sameLine(0,6);
+            if(i>0)sameNav(6);
             var tab=navOrder[i];
             if(UiChrome.navButton(tab==3?messageLabel:navLabels[i],activeTab==tab,navSize))activate(tab);
         }
-        ImGui.sameLine(0,6);
+        sameNav(6);
         if(UiChrome.ghostButton("Boss loot###navLoot",navSize))openLoot();
         // The strip shares the row only when it fits to the right of the last chip; otherwise it takes its own right-aligned row.
         var chips=navOrder.length+1;
         var used=logoWidth+(navAvailable.x<560*scale?180*scale+6+navSize.x:chips*navSize.x+(chips-1)*6);
         var stripWidth=strip.width(scale);var target=startX+navAvailable.x-stripWidth+6;
-        if(target>startX+used+16)ImGui.sameLine(target);
+        if(target>startX+used+16){ImGui.sameLine(target);if(navY>=0)ImGui.setCursorPosY(navY);}
         else{chrome.gap(6);ImGui.setCursorPosX(Math.max(startX+8,target));}
         strip.draw(navSize.y+6);
     }
@@ -201,22 +201,23 @@ class Panel {
         ImGui.separator();
         if(MenuKit.item("Close window",KeyBinding.label(c.panelKey,c.panelMods)))open.set(false);
     }
-    /** Keeps the current width where the screen allows and restores the designed 1180:740 shape. */
+    /** Keeps the current width where the screen allows and restores the designed 1180:768 shape. */
     function fitDesign():Void {
         var fit=Geometry.designFit(measured.x>0?measured.x:engine.config.width,maximum.x,maximum.y,minimum.x,minimum.y);
         engine.config.width=fit.w;engine.config.height=fit.h;size.x=fit.w;size.y=fit.h;nextSize=true;engine.markDirty(now);
     }
     /** Transparent wordmark at the left of the tab row; click for About. Skipped when the window is small, so tabs keep their room. */
     function drawLogo(scale:Float):Float {
-        var tex=artwork.textures[LauncherArt.WORDMARK];
+        navY=-1;var tex=artwork.textures[LauncherArt.WORDMARK];
         if(!engine.config.showLogo||tex==(0:hl.I64)||navAvailable.x<760*scale||measured.y<560)return 0;
         logoSize.y=54*scale;logoSize.x=logoSize.y*artwork.widths[LauncherArt.WORDMARK]/artwork.heights[LauncherArt.WORDMARK];
         ImGui.getCursorPos(logoPos);
         ImGui.image(tex,logoSize,uv0,uv1);
         if(ImGui.isItemClicked(0))aboutPrompt=true;
-        ImGui.sameLine(0,14);ImGui.setCursorPosY(logoPos.y+(logoSize.y-navSize.y)*0.5);
+        navY=logoPos.y+(logoSize.y-navSize.y)*0.5;sameNav(14);
         return logoSize.x+14;
     }
+    function sameNav(gap:Float):Float {ImGui.sameLine(0,gap);if(navY>=0)ImGui.setCursorPosY(navY);return navY;}
     function openLoot():Void {loot.openForTargets(browse.selectedTargets());lootOpen.set(true);lootNextSize=true;}
     /** Ctrl+1..5 switch pages. Only while this window has focus and nothing is being typed. */
     function pollShortcuts():Void {

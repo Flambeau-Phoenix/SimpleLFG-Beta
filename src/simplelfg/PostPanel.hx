@@ -22,6 +22,7 @@ class PostPanel {
     var members=new IntRef();var capacity=new IntRef();
     var memberChoices=[["0"],["0","1"],["0","1","2"],["0","1","2","3"]];
     var capacityChoices=["1","2","3","4"];
+    var targetCell:Int->Float->Void;var targetWeights=[3.0,1.4];var lfmWeights=[1.6,1.0,1.0,1.2];var lfgWeights=[1.6,1.2];
     var fields:Void->Void;var previewBody:Void->Void;var partyCell:Int->Float->Void;
     var steamActions:Int->Float->Void;
     var available=new ImVec2();var previewSize=new ImVec2();var listSize=new ImVec2();
@@ -30,7 +31,7 @@ class PostPanel {
     var feedback=new FeedbackTone();
     public function new(engine:Engine,chrome:Chrome){this.engine=engine;this.chrome=chrome;
         workspace=new Workspace(chrome,"##Post",drawEditor,drawLibrary,450,400);
-        steamActions=drawSteamAction;fields=drawFields;previewBody=drawPreview;partyCell=drawPartyCell;activityBody=drawActivityList;
+        steamActions=drawSteamAction;fields=drawFields;previewBody=drawPreview;partyCell=drawDetailCell;targetCell=drawTargetCell;activityBody=drawActivityList;
         templateTable=new DataTable("##templateTable",[{label:"Template",width:1,fixed:false,sortable:false},{label:"##templateActions",width:156,fixed:true,sortable:false}],28,templateId,templateCell,templateSelected,templatePick,templateMenu,templateActivate);
         sync();
     }
@@ -47,15 +48,19 @@ class PostPanel {
     }
     public function draw():Void {
         ImGui.getContentRegionAvail(available);layout.update(available.x,available.y,engine.config.textScale,true);
-        workspace.draw(engine.config.textScale,layout.bodyHeight);
-        chrome.gap(8);previewSize.x=0;previewSize.y=layout.previewHeight;chrome.card("##Post.preview",previewSize,previewBody);
+        // What will be posted comes first, large; the Post button sits right under it, and the editor fills the rest.
+        previewSize.x=0;previewSize.y=layout.previewHeight;chrome.card("##Post.preview",previewSize,previewBody);
         var submit=chrome.disabledButton(postLabel,engine.cooldown>0||engine.relayPostPending||engine.relayPostError!=""||engine.config.draft.activity==""||!engine.state.available||!engine.previewCurrent(),true,120);
         if(submit)engine.enqueue(engine.action("post",preview,engine.config.draft.channel));
         ImGui.sameLine();if(ImGui.checkbox("Remind me##reminder",reminder)){engine.config.reminder=reminder.get();engine.markDirty(now);}
+        chrome.gap(8);workspace.draw(engine.config.textScale,layout.bodyHeight);
     }
+    /** The reviewed text at 1.25x so it can be read at a glance before posting. */
     function drawPreview():Void {
-        chrome.subHeader("Preview");
-        Scope.wrapped(preview);
+        chrome.subHeader("Preview - this is exactly what will be posted");
+        ImGui.pushFont(ImGui.getFont(),ImGui.getFontSize()*1.25);var error:Dynamic=null;
+        try Scope.wrapped(preview) catch(e:Dynamic)error=e;
+        ImGui.popFont();if(error!=null)throw error;
     }
     function drawEditor():Void {
         chrome.header("Build your post");
@@ -67,11 +72,9 @@ class PostPanel {
     }
     function drawFields():Void {
         var d=engine.config.draft;var changed=false;
-        Scope.row("Activity");if(UiText.input("##activity","Catalogue or custom target",activity)){d.activity=Config.clean(activity.get(),80);changed=true;}
-        Scope.row("Difficulty");if(Scope.choice("##difficulty",difficulty,difficulties)){d.difficulty=difficulty.get()==2?"Heroic":(difficulty.get()==1?"Veteran":"Normal");changed=true;}
-        Scope.row("Class (optional)");if(Scope.choice("##playerClass",playerClass,classChoices)){d.playerClass=playerClass.get()==0?"":classChoices[playerClass.get()];changed=true;}
-        Scope.row("Bonus Runs");if(ImGui.checkbox("Bonus Runs##bonus",bonus)){d.bonusRuns=bonus.get();changed=true;}
-        if(d.kind=="LFM"){Scope.row("Party size");Scope.inlineGroup("##party",2,partyCell);}
+        // Two compact rows instead of five: dungeon beside difficulty, then class, party size and the Bonus Runs box.
+        Scope.row("Target");Scope.inlineWeighted("##target",targetWeights,targetCell);
+        Scope.row("Details");Scope.inlineWeighted("##details",d.kind=="LFM"?lfmWeights:lfgWeights,partyCell);
         Scope.row("Note");if(UiText.input("##note","Optional short note",note,true)){d.note=Config.clean(note.get(),160);changed=true;}
         if(d.channel!="Relay"){
             Scope.row("Farever contact");
@@ -93,6 +96,27 @@ class PostPanel {
         if(i==0){if(chrome.disabledButton("Attach Steam ID##attachSteamPost",d.channel=="Relay"||!SteamContact.valid(engine.config.steamId),false,Math.min(120,w)))next=SteamContact.attach(d.note,engine.config.steamId,160);}
         else if(chrome.disabledButton("Remove Steam ID##removeSteamPost",!SteamContact.hasTag(d.note),false,Math.min(140,w)))next=SteamContact.detach(d.note);
         if(next!=d.note){d.note=next;note.set(next);engine.markDirty(now);}
+    }
+    function drawTargetCell(i:Int,w:Float):Void {
+        var d=engine.config.draft;
+        if(i==0){
+            ImGui.textDisabled("Activity");ImGui.setNextItemWidth(Math.max(1,w));
+            if(UiText.input("##activity","Catalogue or custom target",activity)){d.activity=Config.clean(activity.get(),80);engine.markDirty(now);}
+        }else{
+            ImGui.textDisabled("Difficulty");ImGui.setNextItemWidth(Math.max(1,w));
+            if(Scope.choice("##difficulty",difficulty,difficulties)){d.difficulty=difficulty.get()==2?"Heroic":(difficulty.get()==1?"Veteran":"Normal");engine.markDirty(now);}
+        }
+    }
+    function drawDetailCell(i:Int,w:Float):Void {
+        var d=engine.config.draft;
+        if(i==0){
+            ImGui.textDisabled("Class (optional)");ImGui.setNextItemWidth(Math.max(1,w));
+            if(Scope.choice("##playerClass",playerClass,classChoices)){d.playerClass=playerClass.get()==0?"":classChoices[playerClass.get()];engine.markDirty(now);}
+        }else if(d.kind=="LFM"&&i<3)drawPartyCell(i-1,w);
+        else{
+            ImGui.textDisabled("Extras");
+            if(ImGui.checkbox("Bonus Runs##bonus",bonus)){d.bonusRuns=bonus.get();engine.markDirty(now);}
+        }
     }
     function drawPartyCell(i:Int,w:Float):Void {
         var d=engine.config.draft;

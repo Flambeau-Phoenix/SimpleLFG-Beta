@@ -57,6 +57,8 @@ class LfgPostRequest(StrictModel):
     undefined: int = Field(default=0, ge=0, le=4)
     note: str = Field(default='', max_length=64)
     share_steam_public: bool = False
+    farever_code: str = Field(default='', pattern=r'^(?:[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4})?$')
+    share_farever_public: bool = False
     tanks: int = Field(default=0, ge=0, le=4)
     heals: int = Field(default=0, ge=0, le=4)
     dps: int = Field(default=0, ge=0, le=4)
@@ -78,6 +80,7 @@ class LfgPostRequest(StrictModel):
 
 
 class LfgListing(BaseModel):
+    farever_code: str = ''
     kind: Literal["LFG", "LFM"] = "LFM"
     player_class: Literal["", "Warrior", "Mage", "Priest", "Rogue"] = ""
     is_test: bool = False
@@ -100,6 +103,7 @@ class LfgListing(BaseModel):
 
 
 class SessionRequest(StrictModel):
+    features: list[Literal['social-v1']] = Field(default_factory=list, max_length=1)
     host: str = Field(min_length=1, max_length=24)
     steam_id: str = Field(default='', pattern=r'^[0-9]{0,20}$')
 
@@ -121,6 +125,15 @@ class PrivateChatRequest(StrictModel):
 
 class PrivacyRequest(StrictModel):
     share_steam_public: bool
+    share_farever_public: bool = False
+
+
+class DeletePostRequest(StrictModel):
+    listing_id: str = Field(min_length=1, max_length=128)
+
+
+class DeleteChatRequest(StrictModel):
+    message_id: int = Field(ge=1, le=2147483647)
 
 
 class LfgStore:
@@ -222,7 +235,7 @@ async def lifespan(app):
         pass
 
 
-app = FastAPI(title='SimpleLFG relay', version='1.4.0', lifespan=lifespan)
+app = FastAPI(title='SimpleLFG relay', version='1.5.0', lifespan=lifespan)
 # CORS wraps guard errors too. Neither mechanism authenticates native clients.
 app.add_middleware(RequestGuard)
 app.add_middleware(CORSMiddleware, allow_origins=['https://webgameuniverse.com'],
@@ -248,7 +261,12 @@ async def create_session(request: Request, data: SessionRequest):
     budgets.hit('sessions_hour_ip', ip, 30, 3600)
     if moderation.blocked(data.steam_id):
         raise HTTPException(403, 'This Steam code is blocked.')
-    return JSONResponse(messaging.create(data.host, data.steam_id, ip), headers={'Cache-Control': 'no-store'})
+    return JSONResponse(messaging.create(data.host, data.steam_id, ip, data.features), headers={'Cache-Control': 'no-store'})
+
+
+@app.get('/api/lfg/capabilities')
+async def capabilities():
+    return {'features': ['social-v1']}
 
 
 @app.post('/api/lfg/post', status_code=201)
@@ -275,6 +293,12 @@ async def get_listings(request: Request):
             if code:
                 for field in ('note', 'activity', 'host'):
                     item[field] = item[field].replace(code, '[private]')
+        if not item.get('share_farever_public', False):
+            code = item.get('farever_code', '')
+            item['farever_code'] = ''
+            if code:
+                for field in ('note', 'activity', 'host'):
+                    item[field] = item[field].replace(code, '[private]').replace(code.replace('-', ''), '[private]')
         address = item.get('relay_session', '')
         item['relay_session'] = address if messaging.address(address) else ''
         public.append(item)
@@ -289,8 +313,32 @@ async def update_privacy(request: Request, data: PrivacyRequest, session=Depends
         for row in store.listings.values():
             if row.get('relay_session') == session['id']:
                 row['share_steam_public'] = data.share_steam_public
+                row['share_farever_public'] = data.share_farever_public
     events.notify('listings')
     return {'status': 'success'}
+
+
+@app.post('/api/lfg/post/delete')
+async def delete_post(request: Request, data: DeletePostRequest, session=Depends(private_session)):
+    budgets.hit('delete_post_ip', client_ip(request), 30)
+    budgets.hit('delete_post_session', session['id'], 10)
+    async with store._lock:
+        row = store.listings.get(session['id'])
+        if row is None or row['id'] != data.listing_id or row.get('relay_session') != session['id']:
+            raise HTTPException(404, 'Own listing is unavailable. Refresh the board.')
+        del store.listings[session['id']]
+    events.notify('listings')
+    return {'status': 'success', 'listing_id': data.listing_id}
+
+
+@app.post('/api/lfg/chat/delete')
+async def delete_chat(request: Request, data: DeleteChatRequest, session=Depends(private_session)):
+    budgets.hit('delete_chat_ip', client_ip(request), 120)
+    budgets.hit('delete_chat_session', session['id'], 30)
+    entry = messaging.delete(session, data.message_id)
+    events.notify('chat', session['id'])
+    events.notify('chat', entry['recipient_id'])
+    return {'status': 'success', 'deleted': entry}
 
 
 def send_private_message(session, recipient_id, message, ip):
@@ -308,10 +356,10 @@ async def relay_chat(request: Request, chat: PrivateChatRequest, session=Depends
 
 
 @app.get('/api/lfg/chat')
-async def poll_chat(request: Request, after: int = Query(0, ge=0, le=2147483647), session=Depends(private_session)):
+async def poll_chat(request: Request, after: int = Query(0, ge=0, le=2147483647), deleted_after: int = Query(0, ge=0, le=2147483647), session=Depends(private_session)):
     budgets.hit('inbox_ip', client_ip(request), 300)
     budgets.hit('inbox_session', session['id'], 60)
-    return JSONResponse(messaging.inbox(session['id'], after), headers={'Cache-Control': 'no-store'})
+    return JSONResponse(messaging.inbox(session['id'], after, deleted_after), headers={'Cache-Control': 'no-store'})
 
 
 @app.get('/api/lfg/events')
@@ -340,7 +388,7 @@ async def stream_events(request: Request, session=Depends(private_session)):
 
 @app.get('/health')
 async def health():
-    return {'status': 'healthy', 'service': 'farever-lfg-relay', 'version': '1.4.0', 'timestamp': time.time()}
+    return {'status': 'healthy', 'service': 'farever-lfg-relay', 'version': '1.5.0', 'timestamp': time.time()}
 
 
 @app.get('/lfg-board')

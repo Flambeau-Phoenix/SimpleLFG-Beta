@@ -19,10 +19,13 @@ class Chrome {
     public function gap(px:Float=8):Void {gapSize.x=0;gapSize.y=px;ImGui.dummy(gapSize);}
     /** Cel-shaded card from the shared kit: themed border, rounding and drop shadow. */
     public function card(id:String,size:ImVec2,body:Void->Void):Void UiChrome.celChild(id,size,body);
+    /** Padding-free container for card layouts. Only the container itself drops its padding; the cards inside keep the window padding. */
     public function canvas(id:String,size:ImVec2,body:Void->Void):Void {
-        ImGui.pushStyleVar(ImGuiStyleVar.WindowPadding,zero);var error:Dynamic=null;
-        try Scope.child(id,size,body) catch(e:Dynamic)error=e;
-        ImGui.popStyleVar();if(error!=null)throw error;
+        ImGui.pushStyleVar(ImGuiStyleVar.WindowPadding,zero);
+        var shown=ImGui.beginChild(id,size,0,0);
+        ImGui.popStyleVar();
+        var error:Dynamic=null;try {if(shown)body();}catch(e:Dynamic)error=e;
+        ImGui.endChild();if(error!=null)throw error;
     }
     public function header(label:String):Void UiChrome.centeredHeader(label);
     public function subHeader(label:String):Void UiChrome.subHeader(label);

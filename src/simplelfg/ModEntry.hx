@@ -20,7 +20,7 @@ class ModEntry {
             // One-time boot check before registering any game hook or renderer callback.
             var bytes=sys.io.File.getBytes("hlboot.dat");
             if(haxe.crypto.Sha256.make(bytes).toHex()!=GAME_SHA) {
-                trace("SimpleLFG disabled: unsupported Farever build. See SimpleLFG compatibility.json.");return;
+                trace("SimpleLFG disabled: unsupported Farever build. See the SimpleLFG README for the supported game build.");return;
             }
             bytes=null;
         } catch(_:Dynamic) {trace("SimpleLFG disabled: cannot verify hlboot.dat.");return;}

@@ -5,8 +5,6 @@ import simplelfg.Alerts;
 import simplelfg.SessionHistory;
 import simplelfg.ChannelPolicy;
 import simplelfg.TargetDefaults;
-import simplelfg.SidebarGeometry;
-import simplelfg.BrowseLayout;
 import simplelfg.Engine;
 import simplelfg.Types;
 import TestMain.FakeChat;
@@ -88,25 +86,20 @@ class OverhaulTest {
         check(c.encode().indexOf("ordinary conversation")<0&&c.encode().indexOf("senderId")<0,"history never serialized");
     }
     static function geometry():Void {
-        var g=new SidebarGeometry(1440);check(g.update(true,1920,1)&&g.width==1832&&g.baseWidth==1440,"selection expands without changing persisted width");
-        check(!g.update(true,1920,1),"steady selected frame does not resize");
-        check(g.update(false,1920,1)&&g.width==1440,"closing restores automatic width");
-        g.update(true,1920,1);g.resize(1600);g.update(true,1920,1);
-        check(g.width==1600&&g.baseWidth==1600,"manual resize stays stable while selected");
-        g.update(false,1920,1);check(g.width==1600,"closing preserves manual resize");
-        for(width in [320.0,520.0,720.0,1440.0,1920.0])for(scale in [0.85,1.0,1.5]){
-            var b=new BrowseLayout();b.update(width,scale,false);check(b.board==width&&b.sidebar==0,"no empty selection allocation");
-            b.update(width,scale,true);check(b.sidebar<=width&&b.board<=width,"selected geometry in bounds");
-            check(b.overlay||b.board+b.sidebar+12<=width,"sidebar never below board");
+        for(width in [320.0,520.0,720.0,1140.0,1440.0,1920.0])for(scale in [0.85,1.0,1.5]){
+            var l=new simplelfg.WorkspaceLayout();l.update(width,600,scale);
+            check(l.leftWidth<=width&&l.rightX+l.rightWidth<=width+0.001,"workspace panes stay inside the canvas");
+            check(!l.wide||l.leftWidth+12+l.rightWidth<=width+0.001,"docked inspector never overlaps the board");
         }
     }
     static function migration():Void {
         var old=Config.decode('{"version":3,"geometryVersion":1,"width":720,"height":480,"launcherArt":0,"launcherSize":80,"launcherRight":9999}');
-        check(old.width==1440&&old.height==900,"one time enlargement");
+        check(old.width==1180&&old.height==768,"one time enlargement");
         check(old.monitoredChannels.length==6&&!old.requireRecruitingContext,"legacy capture defaults updated");
         check(old.encode().indexOf("launcherArt")<0&&old.encode().indexOf("launcherSize")<0&&old.encode().indexOf("launcherRight")<0,"retired launcher preferences removed");
-        old.width=700;old.height=450;old.launcherEnabled=false;old.monitoredChannels=["Player"];old.requireRecruitingContext=true;
-        var restored=Config.decode(old.encode());check(restored.width==700&&restored.height==450&&!restored.migrated,"subsequent manual geometry retained");
+        old.width=1100;old.height=800;old.launcherEnabled=false;old.monitoredChannels=["Player"];old.requireRecruitingContext=true;
+        var restored=Config.decode(old.encode());check(restored.width==1100&&restored.height==800&&!restored.migrated,"subsequent manual geometry retained");
+        var tiny=Config.decode('{"geometryVersion":2,"width":700,"height":450}');check(tiny.width==1024&&tiny.height==768,"sizes below the 1024x768 minimum are raised");
         check(!restored.launcherEnabled&&restored.monitoredChannels.length==1&&restored.monitoredChannels[0]=="Player"&&restored.requireRecruitingContext,"channel context and button preferences roundtrip");
         var legacy:Dynamic=haxe.Json.parse(sys.io.File.getContent("assets/recognition-legacy.json"));
         var obj:Dynamic={version:3,lfgWords:legacy.lfgWords,lfmWords:legacy.lfmWords,contextWords:legacy.contextWords,

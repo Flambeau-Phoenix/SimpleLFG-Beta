@@ -1,7 +1,7 @@
 class AssetTest {
     static function main():Void {
         var checks=0;
-        for(name in ["logo3"]){
+        for(name in ["logo3","simplelfg-logo"]){
             var bytes=haxe.Resource.getBytes(name);
             var png=new format.png.Reader(new haxe.io.BytesInput(bytes)).read();var h=format.png.Tools.getHeader(png);
             var bgra=format.png.Tools.extract32(png);
