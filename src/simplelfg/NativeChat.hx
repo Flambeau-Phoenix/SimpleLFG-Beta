@@ -23,7 +23,7 @@ class NativeChat implements GameChatAdapter {
     public var screenWidth(default,null):Float=1920;
     public var screenHeight(default,null):Float=1080;
     var pendingError:Null<String>=null;
-    var generation:Int=0;
+    public var generation(default,null):Int=0;
     var lastIdentity:String="";
     var lastAvailable:Bool=false;
     var cachedUid:String="";

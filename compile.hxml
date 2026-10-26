@@ -8,6 +8,7 @@
 -resource assets/loot-icons.png@loot-icons
 -resource assets/loot-icons.json@loot-icon-frames
 -resource assets/logo3.png@logo3
+-resource assets/simpleLFGbig.png@simplelfg-logo
 -D hl-ver=1.17.0
 -dce full
 -main simplelfg.ModEntry

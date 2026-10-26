@@ -8,6 +8,7 @@ import simplelfg.Types.Draft;
 import simplelfg.UiState.Confirmation;
 import simplelfg.UiState.TemplateRows;
 import simplelfg.UiState.TemplateRow;
+import simplelfg.ui.DataTable;
 
 class PostPanel {
     var engine:Engine;var chrome:Chrome;var workspace:Workspace;var layout=new WorkspaceLayout();
@@ -23,12 +24,15 @@ class PostPanel {
     var capacityChoices=["1","2","3","4"];
     var fields:Void->Void;var previewBody:Void->Void;var partyCell:Int->Float->Void;
     var steamActions:Int->Float->Void;
-    var available=new ImVec2();var previewSize=new ImVec2();
+    var available=new ImVec2();var previewSize=new ImVec2();var listSize=new ImVec2();
+    var templateTable:DataTable;var activityBody:Void->Void;
     var preview:String="";var postLabel:String="Post###post";var cooldown=-1;
     var feedback=new FeedbackTone();
     public function new(engine:Engine,chrome:Chrome){this.engine=engine;this.chrome=chrome;
         workspace=new Workspace(chrome,"##Post",drawEditor,drawLibrary,450,400);
-        steamActions=drawSteamAction;fields=drawFields;previewBody=drawPreview;partyCell=drawPartyCell;sync();
+        steamActions=drawSteamAction;fields=drawFields;previewBody=drawPreview;partyCell=drawPartyCell;activityBody=drawActivityList;
+        templateTable=new DataTable("##templateTable",[{label:"Template",width:1,fixed:false,sortable:false},{label:"##templateActions",width:156,fixed:true,sortable:false}],28,templateId,templateCell,templateSelected,templatePick,templateMenu,templateActivate);
+        sync();
     }
     public function clear():Void {confirm.clear();}
     public function observe(time:Float):Void {
@@ -44,13 +48,13 @@ class PostPanel {
     public function draw():Void {
         ImGui.getContentRegionAvail(available);layout.update(available.x,available.y,engine.config.textScale,true);
         workspace.draw(engine.config.textScale,layout.bodyHeight);
-        chrome.gap(8);previewSize.x=0;previewSize.y=layout.previewHeight;chrome.canvas("##Post.preview",previewSize,previewBody);
+        chrome.gap(8);previewSize.x=0;previewSize.y=layout.previewHeight;chrome.card("##Post.preview",previewSize,previewBody);
         var submit=chrome.disabledButton(postLabel,engine.cooldown>0||engine.relayPostPending||engine.relayPostError!=""||engine.config.draft.activity==""||!engine.state.available||!engine.previewCurrent(),true,120);
         if(submit)engine.enqueue(engine.action("post",preview,engine.config.draft.channel));
         ImGui.sameLine();if(ImGui.checkbox("Remind me##reminder",reminder)){engine.config.reminder=reminder.get();engine.markDirty(now);}
     }
     function drawPreview():Void {
-        if(now<engine.postFeedbackUntil)chrome.status(feedback.text,feedback.kind);
+        chrome.subHeader("Preview");
         Scope.wrapped(preview);
     }
     function drawEditor():Void {
@@ -63,12 +67,17 @@ class PostPanel {
     }
     function drawFields():Void {
         var d=engine.config.draft;var changed=false;
-        Scope.row("Activity");if(ImGui.inputTextWithHint("##activity","Catalogue or custom target",activity.bytes,activity.size)){d.activity=Config.clean(activity.get(),80);changed=true;}
+        Scope.row("Activity");if(UiText.input("##activity","Catalogue or custom target",activity)){d.activity=Config.clean(activity.get(),80);changed=true;}
         Scope.row("Difficulty");if(Scope.choice("##difficulty",difficulty,difficulties)){d.difficulty=difficulty.get()==2?"Heroic":(difficulty.get()==1?"Veteran":"Normal");changed=true;}
         Scope.row("Class (optional)");if(Scope.choice("##playerClass",playerClass,classChoices)){d.playerClass=playerClass.get()==0?"":classChoices[playerClass.get()];changed=true;}
         Scope.row("Bonus Runs");if(ImGui.checkbox("Bonus Runs##bonus",bonus)){d.bonusRuns=bonus.get();changed=true;}
         if(d.kind=="LFM"){Scope.row("Party size");Scope.inlineGroup("##party",2,partyCell);}
-        Scope.row("Note");if(ImGui.inputTextWithHint("##note","Optional short note",note.bytes,note.size)){d.note=Config.clean(note.get(),160);changed=true;}
+        Scope.row("Note");if(UiText.input("##note","Optional short note",note,true)){d.note=Config.clean(note.get(),160);changed=true;}
+        if(d.channel!="Relay"){
+            Scope.row("Farever contact");
+            if(chrome.disabledButton("Attach Farever code##attachFareverPost",engine.social.code=="")){d.note=FareverContact.attach(d.note,engine.social.code,160);note.set(d.note);changed=true;}
+            if(FareverContact.extract(d.note)!=""&&chrome.button("Remove Farever code##removeFareverPost")){d.note=FareverContact.withoutTags(d.note);note.set(d.note);changed=true;}
+        }
         if((d.channel!="Relay"&&SteamContact.valid(engine.config.steamId))||SteamContact.hasTag(d.note)){
             Scope.row("Steam contact");Scope.inlineGroup("##steamPostActions",2,steamActions);
         }
@@ -99,19 +108,38 @@ class PostPanel {
     }
     function drawLibrary():Void {
         chrome.header("Activities & templates");
-        ImGui.setNextItemWidth(-1);if(ImGui.inputTextWithHint("##activitySearch","Search activities or bosses",activities.search.bytes,activities.search.size))activities.changed();
+        ImGui.setNextItemWidth(-1);if(UiText.input("##activitySearch","Search activities or bosses",activities.search))activities.changed();
+        ImGui.getContentRegionAvail(available);listSize.x=0;listSize.y=Math.max(120,(available.y-120)*0.55);
+        Scope.child("##activityList",listSize,activityBody);
+        chrome.gap(8);chrome.subHeader("Saved templates ("+templates.rows.length+"/5)");
+        if(chrome.button("Save current post###saveTemplate",false,160*engine.config.textScale)){engine.saveTemplate(now);confirm.clear();}
+        chrome.gap(4);ImGui.getContentRegionAvail(available);
+        templateTable.rowHeight=Math.max(28,30*engine.config.textScale);
+        templateTable.draw(available.x,Math.max(70,available.y),templates.rows.length,"No saved templates yet. Fill in a post and choose Save current post.");
+    }
+    function drawActivityList():Void {
         for(row in activities.rows){var pick=Scope.selectable(row.id,row.activity.name,engine.config.draft.activity==row.activity.name);if(pick){engine.config.draft.activity=row.activity.name;activity.set(row.activity.name);engine.markDirty(now);}}
         if(activities.rows.length==0)chrome.empty("No activities match. You can enter a custom target.");
-        chrome.gap(12);if(chrome.actionRow("Saved templates","Save##saveTemplate")){engine.saveTemplate(now);confirm.clear();}
-        chrome.note("Up to five saved posts. Select one to load a copy.");
-        if(templates.rows.length==0)chrome.empty("No saved templates yet.");
-        for(row in templates.rows){var picked=Scope.selectable(row.id,row.label,selectedTemplate!=null&&row.id==selectedTemplate.id);
-            if(picked)loadTemplate(row);
-            if(ImGui.isItemClicked(1)){if(selectedTemplate!=row)confirm.clear();selectedTemplate=row;}
-            if(ImGui.beginPopupContextItem(row.menuId)){var e:Dynamic=null;try{if(Scope.cancelPopups)ImGui.closeCurrentPopup();else{if(ImGui.menuItem("Load template"))loadTemplate(row);if(ImGui.menuItem("Delete template")){selectedTemplate=row;confirm.clear();confirm.press(row.id);}}}catch(x:Dynamic)e=x;ImGui.endPopup();if(e!=null)throw e;}
-        }
-        if(selectedTemplate!=null&&chrome.confirm("Delete template###confirm",confirm,selectedTemplate.id)){
-            engine.config.templates.remove(selectedTemplate.draft);selectedTemplate=null;engine.markDirty(now);
+    }
+    function templateId(i:Int):String return "##"+templates.rows[i].id;
+    function templateSelected(i:Int):Bool return selectedTemplate!=null&&templates.rows[i].id==selectedTemplate.id;
+    function templatePick(i:Int):Void {if(i<0||i>=templates.rows.length)return;if(selectedTemplate!=templates.rows[i])confirm.clear();selectedTemplate=templates.rows[i];}
+    function templateActivate(i:Int):Void {if(i>=0&&i<templates.rows.length)loadTemplate(templates.rows[i]);}
+    function templateMenu(i:Int):Void {
+        if(i<0||i>=templates.rows.length)return;var row=templates.rows[i];
+        if(ImGui.menuItem("Load template"))loadTemplate(row);
+        ImGui.separator();
+        if(ImGui.menuItem("Delete template...")){selectedTemplate=row;confirm.clear();confirm.press(row.id);}
+    }
+    function templateCell(i:Int,column:Int):Void {
+        var row=templates.rows[i];
+        if(column==0){ImGui.textUnformatted(row.label);return;}
+        ImGui.setCursorPosY(ImGui.getCursorPosY()-templateTable.padY+2);
+        if(chrome.button("Load###tload"+row.id,false,64))loadTemplate(row);
+        ImGui.sameLine(0,4);
+        var armed=confirm.target==row.id;
+        if(chrome.button(armed?"Confirm?###tdelete"+row.id:"Delete###tdelete"+row.id,false,84,armed)&&confirm.press(row.id)){
+            engine.config.templates.remove(row.draft);if(selectedTemplate==row)selectedTemplate=null;confirm.clear();engine.markDirty(now);
         }
     }
     function loadTemplate(row:TemplateRow):Void {confirm.clear();selectedTemplate=row;engine.config.draft=row.draft.copy();sync();engine.markDirty(now);}

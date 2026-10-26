@@ -3,15 +3,18 @@ package simplelfg;
 import imgui.ImGui;
 
 class LauncherArt {
-    public var textures(default,null):Array<hl.I64>=[0,0,0,0];
-    public var widths(default,null):Array<Int>=[1,1,1,1];
-    public var heights(default,null):Array<Int>=[1,1,1,1];
+    public static inline var BUTTON=3;
+    public static inline var WORDMARK=4;
+    static var resources=[null,null,null,"logo3","simplelfg-logo"];
+    public var textures(default,null):Array<hl.I64>=[0,0,0,0,0];
+    public var widths(default,null):Array<Int>=[1,1,1,1,1];
+    public var heights(default,null):Array<Int>=[1,1,1,1,1];
     var loaded:Bool=false;
     public function new(){}
     public function observe():Void {
         if(loaded)return;loaded=true;
-        for(i in 3...4)try {
-            var raw=haxe.Resource.getBytes("logo3");
+        for(i in 3...5)try {
+            var raw=haxe.Resource.getBytes(resources[i]);
             var data=new format.png.Reader(new haxe.io.BytesInput(raw)).read();
             var header=format.png.Tools.getHeader(data);
             if(header.width<=0||header.height<=0||header.width>512||header.height>512)continue;

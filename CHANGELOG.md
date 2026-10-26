@@ -1,16 +1,20 @@
-# v1.0b
+# v1.1 interface candidate - 2026-10-26
 
-- First beta release branding for the user-accepted SimpleLFG 0.1.12 build.
-- Exact tested bytecode retained; the runtime startup label remains `0.1.12-test`.
-- Updated repository documentation and versioned release packaging.
-- Final Snyk scan: 0 high, 0 medium, 12 disclosed low development-tool findings; no known vulnerable paths in 13 Python dependencies.
-
-# 0.1.12 release
-
-- User-confirmed working 0.1.12-test promoted with identical bytecode.
-- Fresh final Snyk pass: no high/medium findings; 12 disclosed low findings in
-  local development tools. Python dependencies have no known vulnerable paths.
-- No player setup keys; existing settings and shared dependencies retained.
+- Rebuilt the window as a menu-bar shell (File / View / Party / Help) with a navigation row and an always-visible party strip. The shared look now comes from a copy of the host UI kit under `src/simplelfg/ui` (package renamed; host-only couplings cut), so cards, buttons, headers and themes match the SolarFlare editors without a runtime dependency.
+- Browse is a sortable, resizable, clipped table (context, target, type, player, party, source, age, message) beside a docked inspector. The auto-growing sidebar and overlay drawer are gone. Keyboard: Up/Down, Enter whisper, Delete hide, Ctrl+F search, Ctrl+1..5 pages.
+- People shows friends and same-realm players in a table with level and zone, your friend code with Copy, add-by-code with live validation, the party roster, Invite per row, and two-step Remove friend.
+- Party: read-only roster from the installed game group; two-step Leave in the strip, menu and People page; optional Leave chip beside the LFG button (off by default). All verbs use the game's own checks and callbacks; nothing is accepted on anyone's behalf.
+- Panel key is rebindable (capture or pick from a list, optional Ctrl/Shift/Alt). Default stays F5. Letters and digits require a modifier. A one-time lookup warns when Farever or a companion overlay already uses the key.
+- Post templates are a table with Load and two-step Delete; Messages lists conversations in a table; Settings gained Privacy and contacts as its own page; theme sliders became typed fields.
+- Results appear as toasts instead of inline status lines.
+- Default window is 1180x740 for new installs and legacy sizes below it; saved v2 sizes are kept.
+- The panel key now works while the game owns the pointer (camera mode): it opens and closes the window, which stays visible but non-interactive until the cursor is freed. The window no longer closes when the pointer locks; logout, loading and cutscenes still close it. The key is also read from the engine key state, so it works during plain play.
+- The on-screen button is now a cel-shaded window of its own: drag it anywhere, and right-click for Lock Window, Transparent Window, Reset Position and Hide Button (the same menu shape as the overlay windows). Placement is stored as a fraction of the screen. The leave chip and unread badge follow it.
+- Fixed "Relay offline" while the relay was up: a malformed saved Steam ID (for example a pasted paragraph) silently blocked the private-message session. The session now connects without the Steam ID, a corrupt saved value is cleared on load, the menu bar distinguishes "listings only, no messaging session", and relay status changes are traced once to hlx.log.
+- Quicker party access: the Party menu opens with a status line and Leave party, then "Invite to party" lists nearby friends, friends elsewhere (with their zone) and other nearby players. The strip now has an Invite button when solo as well, which opens the same list at the pointer instead of changing page.
+- Fixed the party strip overlapping the page tabs at narrow widths. It now shares the tab row only when it fits, otherwise it takes its own right-aligned row, and it sits inside a bordered frame so it reads as one anchored block.
+- Added the transparent SimpleLFG wordmark: it sits at the left of the tab row (click for About, hidden on small windows, View > Show logo to turn it off) and in the About popup. The image is embedded as a resource (assets/simpleLFGbig.png).
+- New offline suite ShellTest; layout, migration and social suites updated. In-game visual and input acceptance is pending.
 
 # 0.1.12-test - 2026-10-25
 

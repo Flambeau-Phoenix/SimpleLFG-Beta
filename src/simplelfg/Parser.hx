@@ -53,7 +53,7 @@ class Parser {
     public function parse(e:ChatEnvelope,?config:Config):Listing {
         if(e==null||e.senderId==null||e.senderId==""||e.senderName==null||e.text==null||e.text.length>512||e.text.indexOf("\x00")>=0||!Math.isFinite(e.receivedAt))return null;
         var c=config==null?defaults:config;if(c!=cached||aliasRef!=c.targetAliases||soloRef!=c.lfgWords||moreRef!=c.lfmWords||contextRef!=c.contextWords||excludeRef!=c.excludedWords)prepare(c);
-        var text=Config.clean(e.text,512);var recruitingText=StringTools.trim(SteamContact.withoutTags(text));var folded=RecognitionWord.fold(recruitingText);if(excludeIndex.matches(folded))return null;
+        var text=Config.clean(e.text,512);var recruitingText=StringTools.trim(FareverContact.withoutTags(SteamContact.withoutTags(text)));var folded=RecognitionWord.fold(recruitingText);if(excludeIndex.matches(folded))return null;
         var target=targetFor(folded);var solo=soloIndex.matches(folded);var more=false;var explicitMore=false;
         for(word in moreIndex.words)if(word.matches(folded)){
             if(!word.general){more=true;explicitMore=true;}else if(target!=null)more=true;
@@ -72,6 +72,7 @@ class Parser {
         l.key=e.senderId+"\x1f"+l.kind+"\x1f"+key;l.uiId=haxe.crypto.Sha256.encode(l.key).substr(0,24);
         l.composition="Size unspecified";if(composition.match(text)){var n=Std.parseInt(composition.matched(1));var cap=Std.parseInt(composition.matched(2));if(cap>0&&cap<=40&&n<=cap)l.composition=n+"/"+cap;}
         l.steamId=SteamContact.extract(text);
+        l.fareverCode=FareverContact.extract(text);
         l.channel=e.channel;l.text=text;l.seen=e.receivedAt;return l;
     }
     public static function matchesExact(words:Array<String>,word:String):Bool {for(w in words)if(w.toLowerCase()==word.toLowerCase())return true;return false;}

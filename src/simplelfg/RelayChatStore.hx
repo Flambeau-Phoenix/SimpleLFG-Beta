@@ -1,6 +1,6 @@
 package simplelfg;
 
-typedef RelayChatLine={var id:Int;var peer:String;var name:String;var text:String;var outgoing:Bool;var time:Float;}
+typedef RelayChatLine={var id:Int;var peer:String;var name:String;var text:String;var outgoing:Bool;var time:Float;@:optional var deleted:Bool;}
 typedef RelayPeer={var id:String;var name:String;}
 
 /** Session-only messages, never written into settings or captured from native chat. */
@@ -11,10 +11,16 @@ class RelayChatStore {
     public function new(){}
     public function clear():Void {lines=[];unread=0;revision++;}
     public function read():Void {if(unread>0){unread=0;revision++;}}
+    public function ownMessage(id:Int):Bool {for(line in lines)if(line.id==id)return line.outgoing&&line.deleted!=true;return false;}
+    public function tombstone(id:Int,peer:String,name:String,outgoing:Bool,time:Float):Void {
+        for(line in lines)if(line.id==id){line.text="Message deleted";line.deleted=true;revision++;return;}
+        remember(id,peer,name,"Message deleted",outgoing,time);
+        for(line in lines)if(line.id==id)line.deleted=true;
+    }
     public function remember(id:Int,peer:String,name:String,text:String,outgoing:Bool,time:Float):Void {
         if(id<=0||!~/^[0-9a-f]{32}$/.match(peer)||text==null||text.length>240||name==null||name.length>24||!Math.isFinite(time))return;
         for(line in lines)if(line.id==id)return;
-        lines.push({id:id,peer:peer,name:Config.clean(name,24),text:Config.clean(text,240),outgoing:outgoing,time:time});
+        lines.push({id:id,peer:peer,name:Config.clean(name,24),text:Config.message(text,240),outgoing:outgoing,time:time});
         if(!outgoing)unread++;
         while(lines.length>500)lines.shift();revision++;
     }

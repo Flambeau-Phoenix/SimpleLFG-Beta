@@ -52,13 +52,13 @@ class LootPanel {
         pane.x=usable-left;chrome.card("##lootInspectorCard",pane,inspectorBody);
     }
     function drawChoices():Void {
-        ImGui.setNextItemWidth(-1);if(ImGui.inputTextWithHint("##bossSearch","Search bosses",bossSearch.bytes,bossSearch.size))filterDirty=true;
+        ImGui.setNextItemWidth(-1);if(UiText.input("##bossSearch","Search bosses",bossSearch))filterDirty=true;
         for(b in bossRows)if(Scope.selectable(b.id,b.name,b.id==selectedId)){selectedId=b.id;selectedItem=null;pending=true;}
         if(bossRows.length==0)chrome.empty("No bosses match this search.");
     }
     function drawDrops():Void {
         chrome.subHeader("Boss loot");
-        ImGui.setNextItemWidth(-1);if(ImGui.inputTextWithHint("##lootItemsSearch","Search this boss's items",itemSearch.bytes,itemSearch.size))pending=true;
+        ImGui.setNextItemWidth(-1);if(UiText.input("##lootItemsSearch","Search this boss's items",itemSearch))pending=true;
         ImGui.setNextItemWidth(120);if(Scope.choice("##lootSort",sortChoice,sorts))pending=true;
         ImGui.sameLine();if(chrome.button(ascending?"A-Z##direction":"Z-A##direction")){ascending=!ascending;pending=true;}
         if(error!=""){chrome.status(error,2);return;}
@@ -69,10 +69,14 @@ class LootPanel {
     function drawItem(row:LootLine):Void {
         ImGui.pushID_Str(row.key);var error:Dynamic=null;
         try {
-            art.draw(row.iconKey,48*config.textScale);ImGui.sameLine();
-            if(ImGui.selectable(row.title,selectedItem!=null&&selectedItem.key==row.key)){selectedItem=row;copyFeedback="";}
+            ImGui.beginGroup();var groupError:Dynamic=null;
+            try {
+                art.draw(row.iconKey,48*config.textScale);ImGui.sameLine();
+                if(ImGui.selectable(row.title,selectedItem!=null&&selectedItem.key==row.key)){selectedItem=row;copyFeedback="";}
+            }catch(e:Dynamic)groupError=e;
+            ImGui.endGroup();if(groupError!=null)throw groupError;
             if(ImGui.isItemClicked(1)){selectedItem=row;copyFeedback="";}
-            if(ImGui.beginPopupContextItem("##lootContext")){var failure:Dynamic=null;
+            ContextMenuSystem.openForItem("##lootContext");if(ImGui.beginPopup("##lootContext")){var failure:Dynamic=null;
                 try {if(Scope.cancelPopups)ImGui.closeCurrentPopup();else{if(ImGui.menuItem("Inspect"))selectedItem=row;if(ImGui.menuItem("Copy item name"))copy=row.title;}}catch(e:Dynamic)failure=e;
                 ImGui.endPopup();if(failure!=null)throw failure;
             }

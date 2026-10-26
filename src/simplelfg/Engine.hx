@@ -4,6 +4,7 @@ import simplelfg.Types;
 
 class Engine {
     public var config:Config;
+    public var social=new SocialService();
     public var board:Board;
     public var alerts:Alerts=new Alerts();
     public var state(default,null):Session={id:"",playerId:"",cursorFree:false,available:false};
@@ -23,6 +24,11 @@ class Engine {
     public var relayPostPending(default,null):Bool=false;
     public var relayPostError(default,null):String="";
     public var relayMessages=new RelayChatStore();
+    public var deletePending(default,null)=false;
+    public var withdrawPending(default,null)=false;
+    var pendingDelete=0;var pendingWithdraw="";
+    var deletionCursor=0;var capabilitiesPending=false;var nextCapabilities:Float=0;
+    var privacyFareverApplied:Null<Bool>=null;
     public var relayMessagePending(default,null)=false;
     public var relaySentRevision(default,null)=0;
     public var testRelayPeer(default,null):String="";
@@ -38,6 +44,7 @@ class Engine {
     var adapter:GameChatAdapter;
     var nextPost:Float=0;
     var nextWhisper:Float=0;
+    var nextSocial:Float=0;
     var reminderDue:Float=0;
     var maintenanceSecond:Int=-1;
     var previewRevision:Int=-1;
@@ -47,8 +54,11 @@ class Engine {
     }
     public function markDirty(now:Float):Void {dirtyAt=now;settingsRevision++;}
     public function previewCurrent():Bool return previewRevision==settingsRevision;
+    /** Bumped for every user-facing result, so identical text can still raise a fresh toast. */
+    public var feedbackSerial(default,null):Int=0;
+    public var feedbackText(default,null):String="";
     public function report(scope:String,text:String,now:Float):Void {
-        status=text;
+        status=text;feedbackSerial++;feedbackText=text;
         if(scope=="post"){postFeedback=text;postFeedbackUntil=now+10;}
         if(scope=="whisper"){whisperFeedback=text;whisperFeedbackUntil=now+10;}
     }
@@ -56,6 +66,9 @@ class Engine {
         if(actions.length>=16) {report(a.kind,"Too many pending actions.",Sys.time());return false;}
         actions.push(a);return true;
     }
+    /** Social verbs that target a native roster uid (or none, for leaving the party). */
+    public function socialAction(kind:String,uid:String="",name:String=""):UiAction
+        return {kind:kind,sessionId:state.id,text:"",channel:"",targetId:uid,targetName:name,listingKey:""};
     public function action(kind:String,text:String="",channel:String="All",target:Listing=null):UiAction {
         return {kind:kind,sessionId:state.id,text:text,channel:channel,targetId:target==null?"":target.senderId,
             targetName:target==null?"":target.senderName,listingKey:target==null?"":target.key};
@@ -70,13 +83,18 @@ class Engine {
         }
         if(s.playerName!=state.playerName)previewRevision=-1;
         state.id=s.id;state.playerId=s.playerId;state.available=s.available;state.cursorFree=s.cursorFree;state.playerName=s.playerName;
+        var oldCode=social.code;social.observe(config,s.id,s.playerId,s.available,now);
+        if(oldCode!=social.code)previewRevision=-1;
+        if(config.shareFareverPublic&&config.fareverOwner!=s.playerId){config.shareFareverPublic=false;markDirty(now);}
         if(!s.available) {actions.resize(0);reminderDue=0;reminderReady=false;alerts.reset();}
         if(parserRevision!=settingsRevision){board.prepare(config);parserRevision=settingsRevision;}
         board.update(config,now);
         serviceRelay(now);
         if(previewRevision!=settingsRevision) {
             relayPostError=config.draft.channel=="Relay"?RelayProtocol.postError(config,config.draft,state.playerName):"";
-            preview=config.draft.channel=="Relay"?RelayProtocol.preview(config,config.draft,state.playerName):Parser.preview(config.draft);previewRevision=settingsRevision;
+            preview=config.draft.channel=="Relay"?RelayProtocol.preview(config,config.draft,state.playerName):Parser.preview(config.draft);
+            if(config.draft.channel=="Relay"&&config.shareFareverPublic)preview+=" | Farever: "+(social.code==""?"Unavailable":social.code);
+            previewRevision=settingsRevision;
         }
         var second=Std.int(now);
         if(second!=maintenanceSecond) {
@@ -102,7 +120,8 @@ class Engine {
                     if(error!=""){report("post",error,now);continue;}
                     if(!previewCurrent()||a.text!=preview){report("post","Review the updated cross-server preview before posting.",now);continue;}
                     if(relayPostPending){report("post","A cross-server post is already pending.",now);continue;}
-                    if(!relay.post(RelayProtocol.body(config,config.draft,state.playerName))){report("post","Relay queue is busy. Try again shortly.",now);continue;}
+                    if(config.shareFareverPublic&&(!relay.socialSupported||social.code=="")){report("post","Farever sharing is unavailable. Check your code and relay connection.",now);continue;}
+                    if(!relay.post(RelayProtocol.body(config,config.draft,state.playerName,social.code,relay.socialSupported))){report("post","Relay queue is busy. Try again shortly.",now);continue;}
                     relayPostPending=true;report("post","Publishing cross-server listing...",now);continue;
                 }
                 var err=adapter.send(msg,a.channel,"","");
@@ -113,7 +132,7 @@ class Engine {
                 if(!board.contains(a.listingKey)) {report("whisper","Listing expired or was hidden. Select a current listing.",now);continue;}
                 if(a.targetId=="" || a.targetId==s.playerId) {report("whisper","Choose another player.",now);continue;}
                 if(a.text.length>240) {report("whisper","Whispers must be 240 characters or fewer.",now);continue;}
-                var msg=Config.clean(a.text,240);
+                var msg=Config.message(a.text,240);
                 if(msg=="") {report("whisper","Enter a whisper first.",now);continue;}
                 if(now<nextWhisper) {report("whisper","Please wait before sending another whisper.",now);continue;}
                 if(StringTools.startsWith(a.targetId,"relay_")){
@@ -126,11 +145,25 @@ class Engine {
                 nextWhisper=now+2;report("whisper","Whisper submitted to game chat; delivery is not confirmed.",now);
 
             } else if(a.kind=="message") {
-                var msg=Config.clean(a.text,240);
+                var msg=Config.message(a.text,240);
                 if(msg==""||a.text.length>240){report("whisper","Enter a message of 1-240 characters.",now);continue;}
                 if(now<nextWhisper||relayMessagePending){report("whisper","Please wait before sending again.",now);continue;}
                 if(!~/^[0-9a-f]{32}$/.match(a.targetId)||a.targetId==relay.sessionId||!relay.send(a.targetId,msg)){report("whisper","Private messaging is not connected yet.",now);continue;}
                 relayMessagePending=true;pendingPeerName=a.targetName;nextWhisper=now+2;report("whisper","Sending private message...",now);
+            } else if(a.kind=="deleteMessage") {
+                var id=Std.parseInt(a.text);
+                if(id==null||!relayMessages.ownMessage(id)){report("whisper","Choose one of your sent messages.",now);continue;}
+                if(deletePending||!relay.deleteMessage(id)){report("whisper","Message deletion requires an updated relay connection.",now);continue;}
+                pendingDelete=id;deletePending=true;report("whisper","Deleting message for both participants...",now);
+            } else if(a.kind=="withdraw") {
+                var found:Listing=null;for(l in board.entries)if(l.key==a.listingKey&&l.isRemote&&l.isOwn&&l.relayListingId==a.text)found=l;
+                if(found==null||withdrawPending||!relay.withdraw(found.relayListingId)){report("whisper","Own listing unavailable or relay needs an update.",now);continue;}
+                pendingWithdraw=found.relayListingId;withdrawPending=true;
+            } else if(a.kind=="addCode"||a.kind=="addFriend"||a.kind=="invite"||a.kind=="leaveParty"||a.kind=="removeFriend") {
+                if(now<nextSocial&&a.kind!="leaveParty"){report("whisper","Please wait before sending another social request.",now);continue;}
+                nextSocial=now+2;
+                var outcome=social.run(a.kind,a.targetId,a.text);report("whisper",outcome,now);
+                trace("SimpleLFG social "+a.kind+": "+outcome);
             } else if(a.kind=="hide") board.hide(a.listingKey);
             else if(a.kind=="ignore" || a.kind=="ignorePermanent") {
                 board.ignore(a.targetId,a.targetName,config,now,a.kind=="ignorePermanent");markDirty(now);
@@ -142,7 +175,16 @@ class Engine {
             if(s.available)alerts.update(board,config,s.playerId,now);
         }
     }
-    function resetRelay():Void {testRelayPeer="";relay.reset();listingsDirty=true;inboxDirty=true;streamPending=false;streamConnected=false;nextStream=0;nextRelayService=0;relayActive=false;relayPollPending=false;relayPostPending=false;nextRelayPoll=0;sessionPending=false;inboxPending=false;nextSession=0;nextInbox=0;inboxCursor=0;relayMessagePending=false;relayMessages.clear();requestedRelayPeer="";relayIdentity="";privacyApplied=null;privacyPending=false;nextPrivacy=0;}
+    function resetRelay():Void {deletePending=false;withdrawPending=false;deletionCursor=0;capabilitiesPending=false;nextCapabilities=0;privacyFareverApplied=null;testRelayPeer="";relay.reset();listingsDirty=true;inboxDirty=true;streamPending=false;streamConnected=false;nextStream=0;nextRelayService=0;relayActive=false;relayPollPending=false;relayPostPending=false;nextRelayPoll=0;sessionPending=false;inboxPending=false;nextSession=0;nextInbox=0;inboxCursor=0;relayMessagePending=false;relayMessages.clear();requestedRelayPeer="";relayIdentity="";privacyApplied=null;privacyPending=false;nextPrivacy=0;}
+    function acceptDeletion(value:Dynamic,now:Float):Void {
+        if(value==null)return;
+        var id:Dynamic=Reflect.field(value,"id"),sender:Dynamic=Reflect.field(value,"sender_id"),recipient:Dynamic=Reflect.field(value,"recipient_id"),stamp:Dynamic=Reflect.field(value,"timestamp");
+        if(!Std.isOfType(id,Int)||id<=0||!Std.isOfType(sender,String)||!Std.isOfType(recipient,String)||Reflect.field(value,"deleted")!=true||!(Std.isOfType(stamp,Float)||Std.isOfType(stamp,Int)))return;
+        var time:Float=stamp;if(!Math.isFinite(time)||time>now+60||now-time>=1800)return;
+        if(sender!=relay.sessionId&&recipient!=relay.sessionId)return;
+        var outgoing=sender==relay.sessionId;var name=Config.str(value,outgoing?"recipient":"sender",24,"Player");
+        relayMessages.tombstone(id,outgoing?recipient:sender,name,outgoing,time);
+    }
     function acceptMessage(value:Dynamic,outgoing:Bool,now:Float):Void {
         if(value==null)return;
         var id:Dynamic=Reflect.field(value,"id"),sender:Dynamic=Reflect.field(value,"sender_id"),recipient:Dynamic=Reflect.field(value,"recipient_id"),name:Dynamic=Reflect.field(value,"sender"),text:Dynamic=Reflect.field(value,"message"),stamp:Dynamic=Reflect.field(value,"timestamp");
@@ -162,7 +204,7 @@ class Engine {
         if(!relayVisible){
             if(lastRelayVisible){
                 relay.suspend();streamPending=false;streamConnected=false;sessionPending=false;inboxPending=false;relayPollPending=false;
-                relayPostPending=false;relayMessagePending=false;privacyPending=false;privacyApplied=null;
+                relayPostPending=false;relayMessagePending=false;deletePending=false;withdrawPending=false;capabilitiesPending=false;privacyPending=false;privacyApplied=null;privacyFareverApplied=null;
             }
             lastRelayVisible=false;return;
         }
@@ -189,7 +231,22 @@ class Engine {
                 continue;
             }
             if(result.status==401){resetRelay();relayStatus="Messaging session expired; reconnecting.";return;}
-            if(result.kind=="session"){
+            if(result.kind=="capabilities"){
+                capabilitiesPending=false;
+                relay.socialSupported=false;
+                if(result.error=="")try {var data:Dynamic=haxe.Json.parse(result.body);var features:Dynamic=Reflect.field(data,"features");if(Std.isOfType(features,Array)){var list:Array<Dynamic>=cast features;relay.socialSupported=list.indexOf("social-v1")>=0;}}catch(_:Dynamic){}
+                if(result.error==""||result.status==404){relay.capabilitiesChecked=true;nextSession=0;}
+                else nextCapabilities=now+30;
+                previewRevision=-1;
+            }else if(result.kind=="withdraw"){
+                withdrawPending=false;
+                if(result.error!=""){report("whisper",result.error,now);continue;}
+                try {var data:Dynamic=haxe.Json.parse(result.body);if(Reflect.field(data,"status")!="success"||Reflect.field(data,"listing_id")!=pendingWithdraw)throw "Invalid withdrawal";listingsDirty=true;nextRelayPoll=0;report("whisper","Public listing withdrawn.",now);}catch(_:Dynamic){report("whisper","Invalid withdrawal acknowledgement.",now);}
+            }else if(result.kind=="deleteMessage"){
+                deletePending=false;
+                if(result.error!=""){report("whisper",result.error,now);continue;}
+                try {var data:Dynamic=haxe.Json.parse(result.body);var deleted:Dynamic=Reflect.field(data,"deleted");if(Reflect.field(data,"status")!="success"||deleted==null||Reflect.field(deleted,"id")!=pendingDelete||Reflect.field(deleted,"sender_id")!=relay.sessionId||Reflect.field(deleted,"deleted")!=true)throw "Invalid deletion";acceptDeletion(deleted,now);inboxDirty=true;nextInbox=0;report("whisper","Message deleted for both participants. Previously read text cannot be recalled.",now);}catch(_:Dynamic){report("whisper","Invalid deletion acknowledgement.",now);}
+            }else if(result.kind=="session"){
                 sessionPending=false;nextSession=now+30;
                 if(result.error!=""||!relay.acceptSession(result.body)){relayStatus=result.error!=""?result.error:"Messaging handshake failed.";continue;}
                 relayStatus="Cross-server listings and private messages connected.";nextInbox=0;nextRelayPoll=0;
@@ -204,7 +261,15 @@ class Engine {
                     var data:Dynamic=haxe.Json.parse(result.body);var messages:Dynamic=Reflect.field(data,"messages");var cursor:Dynamic=Reflect.field(data,"cursor");
                     if(Reflect.field(data,"session_id")!=relay.sessionId||!Std.isOfType(messages,Array)||!Std.isOfType(cursor,Int)||cursor<inboxCursor)throw "Invalid inbox";
                     var list:Array<Dynamic>=cast messages;if(list.length>50)throw "Inbox too large";
+                    if(relay.socialSupported){
+                        var deleted:Dynamic=Reflect.field(data,"deleted"),dc:Dynamic=Reflect.field(data,"deletion_cursor");
+                        if(!Std.isOfType(deleted,Array)||!Std.isOfType(dc,Int)||dc<deletionCursor)throw "Invalid deletion inbox";
+                        var changes:Array<Dynamic>=cast deleted;if(changes.length>50)throw "Too many deletions";
+                        for(item in changes)acceptDeletion(item,now);deletionCursor=dc;
+                        if(changes.length==50)inboxDirty=true;
+                    }
                     for(message in list)acceptMessage(message,false,now);inboxCursor=cursor;
+                    if(list.length==50)inboxDirty=true;
                     relayStatus="Cross-server listings and private messages connected.";
                 }catch(_:Dynamic){relayStatus="Invalid private inbox response.";}
             }else if(result.kind=="message"){
@@ -236,14 +301,17 @@ class Engine {
         }
         if(!active){relayStatus=config.relayEnabled?"Cross-server listings waiting for a character.":"Cross-server listings disabled.";return;}
         if(now<relayRetryAt)return;
-        if(relay.sessionId==""&&!sessionPending&&now>=nextSession&&(config.steamId==""||SteamContact.valid(config.steamId))){
-            sessionPending=relay.connect(state.playerName,config.steamId);nextSession=now+30;
+        if(!relay.capabilitiesChecked&&!capabilitiesPending&&now>=nextCapabilities){capabilitiesPending=relay.capabilities();nextCapabilities=now+30;}
+        if(relay.capabilitiesChecked&&relay.sessionId==""&&!sessionPending&&now>=nextSession){
+            // Steam contact is optional: a malformed saved value is simply not sent, so messaging still connects.
+            sessionPending=relay.connect(state.playerName,SteamContact.valid(config.steamId)?config.steamId:"");nextSession=now+30;
         }
-        if(relay.sessionId!=""&&!privacyPending&&privacyApplied!=config.shareSteamPublic&&now>=nextPrivacy){
-            privacyPending=relay.privacy(config.shareSteamPublic);if(privacyPending)privacyApplied=config.shareSteamPublic;
+        var shareFarever=config.shareFareverPublic&&social.code!="";
+        if(relay.sessionId!=""&&!privacyPending&&(privacyApplied!=config.shareSteamPublic||privacyFareverApplied!=shareFarever)&&now>=nextPrivacy){
+            privacyPending=relay.privacy(config.shareSteamPublic,shareFarever);if(privacyPending){privacyApplied=config.shareSteamPublic;privacyFareverApplied=shareFarever;}
         }
         if(relay.sessionId!=""&&!streamPending&&!streamConnected&&now>=nextStream){streamPending=relay.startEvents();nextStream=now+30;}
-        if(relay.sessionId!=""&&!inboxPending&&(!streamConnected||inboxDirty)&&now>=nextInbox){inboxPending=relay.inbox(inboxCursor);if(inboxPending)inboxDirty=false;nextInbox=now+10;}
+        if(relay.sessionId!=""&&!inboxPending&&(!streamConnected||inboxDirty||relay.socialSupported)&&now>=nextInbox){inboxPending=relay.inbox(inboxCursor,deletionCursor);if(inboxPending)inboxDirty=false;nextInbox=now+10;}
         if(!relayPollPending&&(!streamConnected||listingsDirty)&&now>=nextRelayPoll){
             relayPollPending=relay.fetchListings();if(relayPollPending)listingsDirty=false;nextRelayPoll=now+15;
             if(!relayPollPending)relayStatus="Relay queue is busy.";

@@ -13,9 +13,16 @@ import imgui.ref.IntRef;
 /** Scope ownership is local to SimpleLFG, including exception unwinding. */
 class Scope {
     static final padding=new ImVec2(4,2);
-    public static function wrapped(text:String):Void {
+    public static function wrapped(text:String,contextMenu:Bool=true):Void {
         ImGui.pushTextWrapPos();var error:Dynamic=null;
-        try ImGui.textUnformatted(text) catch(e:Dynamic)error=e;
+        try {
+            ImGui.textUnformatted(text);
+            if(contextMenu){
+                ImGui.pushID_Str(text);var menuError:Dynamic=null;
+                try ContextMenuSystem.text("##textContext",text) catch(e:Dynamic)menuError=e;
+                ImGui.popID();if(menuError!=null)throw menuError;
+            }
+        } catch(e:Dynamic)error=e;
         ImGui.popTextWrapPos();if(error!=null)throw error;
     }
     public static function colored(color:ImVec4,text:String):Void {

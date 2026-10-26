@@ -9,10 +9,12 @@ class ModEntry {
     public static inline var GAME_SHA="9f48618bbcc421458c852c298d5ebec9512bfae8a8381816e0e770803601f1ec";
     static var engine:Engine;
     static var native:NativeChat;
+    static var social:NativeSocial;
     static var panel:Panel;
     static var store:Store;
     static var lastService:Float=-1;
     static var lastFailure:Float=-1;
+    static var lastRelayTrace="";
     static function main():Void {
         try {
             // One-time boot check before registering any game hook or renderer callback.
@@ -26,19 +28,22 @@ class ModEntry {
         native=new NativeChat();
         Catalogue.load();
         engine=new Engine(store.load(),native,new Parser(Catalogue.items));
+        social=new NativeSocial(native);engine.social=new SocialService(social);
         engine.relayVisible=false;
         if(engine.config.migrated)engine.markDirty(Sys.time());
         if(store.error!="") engine.status=store.error;
         native.board=engine.board;
         native.install();
         ImGui.register(HlxRuntime.moduleName(),frame);
-        trace("SimpleLFG 0.1.12-test loaded. Press F5 to open or close SimpleLFG.");
+        trace("SimpleLFG v1.1 interface loaded. Panel key: "+KeyBinding.label(engine.config.panelKey,engine.config.panelMods)+". UI scope failures are traced once per site.");
     }
     static function frame():Void {
         try {
             var now=Sys.time();
             engine.tick(now);
+            if(engine.relayStatus!=lastRelayTrace){lastRelayTrace=engine.relayStatus;trace("SimpleLFG relay: "+lastRelayTrace);}
             var error=native.takeError();if(error!=null) engine.report("whisper",error,now);
+            var socialFeedback=social.takeFeedback();if(socialFeedback!=""){engine.report("whisper",socialFeedback,now);trace("SimpleLFG social result: "+socialFeedback);}
             if(store.error!="") engine.status=store.error;
             if(panel==null) panel=new Panel(engine,native);
             panel.observe(now);

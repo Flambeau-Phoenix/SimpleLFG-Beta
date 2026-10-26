@@ -20,11 +20,16 @@ class RelayProtocol {
         var value=Config.difficulty(d.difficulty)+(d.bonusRuns?" / Bonus Runs":"");
         return clean(value+(d.note==""?"":" / "+d.note));
     }
-    public static function body(c:Config,d:Draft,host:String):String {
-        return haxe.Json.stringify({kind:d.kind,player_class:Config.playerClass(d.playerClass),host:clean(host),steam_id:c.steamId,activity:clean(d.activity),warriors:0,mages:0,priests:0,rogues:0,
-            undefined:d.kind=="LFM"&&d.capacity>0?Std.int(Math.max(0,d.capacity-d.members)):0,note:publicNote(c,d),share_steam_public:c.shareSteamPublic});
+    public static function body(c:Config,d:Draft,host:String,farever:String="",social:Bool=false):String {
+        var data:Dynamic={kind:d.kind,player_class:Config.playerClass(d.playerClass),host:clean(host),steam_id:c.steamId,activity:clean(d.activity),warriors:0,mages:0,priests:0,rogues:0,
+            undefined:d.kind=="LFM"&&d.capacity>0?Std.int(Math.max(0,d.capacity-d.members)):0,note:publicNote(c,d),share_steam_public:c.shareSteamPublic};
+        if(social){Reflect.setField(data,"farever_code",c.shareFareverPublic?FareverContact.format(farever):"");Reflect.setField(data,"share_farever_public",c.shareFareverPublic);}
+        return haxe.Json.stringify(data);
     }
-    static function publicNote(c:Config,d:Draft):String return c.shareSteamPublic||c.steamId==""?note(d):StringTools.replace(note(d),c.steamId,"[private]");
+    static function publicNote(c:Config,d:Draft):String {
+        var text=c.shareFareverPublic?note(d):FareverContact.withoutTags(note(d));
+        return c.shareSteamPublic||c.steamId==""?text:StringTools.replace(text,c.steamId,"[private]");
+    }
     public static function preview(c:Config,d:Draft,host:String):String {
         var error=postError(c,d,host);if(error!="")return error;
         return "Public cross-server "+d.kind+" listing: "+clean(host)+" | "+clean(d.activity)+(Config.playerClass(d.playerClass)==""?"":" | Class: "+d.playerClass)+" | "+publicNote(c,d)+" | "+(d.kind=="LFG"?"Solo player looking for a group":"Open slots: "+(d.capacity>0?Std.int(Math.max(0,d.capacity-d.members)):0))+" | Steam: "+(c.shareSteamPublic?c.steamId:"Private (share in messages)");
@@ -60,6 +65,8 @@ class RelayProtocol {
             if(kind=="LFG"&&w+m+p+r+u!=0)continue;
             var l=new Listing();l.key=key;l.uiId=haxe.crypto.Sha256.encode(key).substr(0,24);l.isRemote=true;
             l.relaySessionId=address;
+            l.relayListingId=id;
+            l.fareverCode=FareverContact.format(string(v,"farever_code",16));
             l.playerClass=pc;
             l.isOwn=(ownSession!=""&&address==ownSession);
             l.senderId="relay_"+haxe.crypto.Sha256.encode(identity).substr(0,24);l.senderName=host;l.steamId=steam;l.kind=kind;l.isTest=Reflect.field(v,"is_test")==true;

@@ -30,7 +30,7 @@ class LootArt {
         ImGui.getCursorScreenPos(pos);corner.x=pos.x+pixels;corner.y=pos.y+pixels;
         ImGui.ImDrawList_AddRectFilled(ImGui.getWindowDrawList(),pos,corner,plateColor,5);
         ImGui.ImDrawList_AddRect(ImGui.getWindowDrawList(),pos,corner,borderColor,5,1);
-        if(!ready||frame==null){ImGui.button("?##missingLootArt",size);return;}
+        if(!ready||frame==null){ImGui.dummy(size);return;}
         ImGui.image(texture,size,frame.uv0,frame.uv1);
     }
 }

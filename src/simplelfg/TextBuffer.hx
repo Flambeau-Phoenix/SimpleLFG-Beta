@@ -4,6 +4,9 @@ package simplelfg;
 class TextBuffer {
     public var bytes(default,null):hl.Bytes;
     public var size(default,null):Int;
+    var edited=false;
+    public function edit(value:String):Void {set(value);edited=true;}
+    public function takeEdit():Bool {var value=edited;edited=false;return value;}
     public function new(size:Int,value:String="") {this.size=size;bytes=new hl.Bytes(size);set(value);}
     public function set(value:String):Void {
         var b=haxe.io.Bytes.ofString(value==null?"":value);

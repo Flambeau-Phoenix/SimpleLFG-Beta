@@ -50,10 +50,12 @@ class Listing {
     public var hidden:Bool = false;
     public var rowLabel:String = "";
     public var steamId:String = "";
+    public var fareverCode:String = "";
     public var isRemote:Bool=false;
     public var isTest:Bool=false;
     public var isOwn:Bool=false;
     public var relaySessionId:String="";
+    public var relayListingId:String="";
     public var expiresAt:Float=0;
     public function new() {}
 }

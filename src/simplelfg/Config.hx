@@ -9,6 +9,16 @@ class Config {
     public var geometryVersion:Int = 2;
     @:transient public var migrated:Bool=false;
     public var hotkey:Int = 5;
+    /** Panel key as a stable name (see KeyBinding) plus modifier bits; `hotkey` is the retired F-number. */
+    public var panelKey:String = "F5";
+    public var panelMods:Int = 0;
+    public var quickLeaveChip:Bool = false;
+    public var showLogo:Bool = true;
+    /** Launcher button placement as a fraction of the screen (-1 = default spot), plus window chrome toggles. */
+    public var launcherX:Float = -1;
+    public var launcherY:Float = -1;
+    public var launcherLocked:Bool = false;
+    public var launcherTransparent:Bool = false;
     public var monitoredChannels:Array<String> = ChannelPolicy.names.copy();
     public var requireRecruitingContext:Bool = false;
     public var expirySeconds:Int = 300;
@@ -18,8 +28,8 @@ class Config {
     public var draft:Draft = new Draft();
     public var templates:Array<Draft> = [];
     public var ignored:Array<IgnoreRule> = [];
-    public var width:Float = 1440;
-    public var height:Float = 900;
+    public var width:Float = 1180;
+    public var height:Float = 740;
     public var windowX:Float = -1;
     public var windowY:Float = -1;
     public var theme:String = "Midnight";
@@ -43,6 +53,9 @@ class Config {
     public var networkVersion:Int=3;
     public var shareSteamPublic:Bool=false;
     public var steamPrivacyVersion:Int=1;
+    public var fareverCode:String="";
+    public var fareverOwner:String="";
+    public var shareFareverPublic:Bool=false;
     public function new() {}
 
     public static function str(o:Dynamic, name:String, max:Int, fallback:String=""):String {
@@ -57,6 +70,20 @@ class Config {
         // Strip control characters, including NUL; never inject a new chat line.
         s = ~/[\x00-\x1f\x7f]/g.replace(s, "");
         return StringTools.trim(s).substr(0,max);
+    }
+    public static function message(s:String,max:Int=240):String {
+        if(s==null)return "";
+        // PCRE's native string conversion cannot safely remove embedded NULs.
+        // Walk characters before any native regex/string substitution instead.
+        var out=new StringBuf();var i=0;
+        while(i<s.length){
+            var c=s.charCodeAt(i);
+            if(c==0)break;
+            if(c==13){out.add("\n");if(i+1<s.length&&s.charCodeAt(i+1)==10)i++;}
+            else if(c==9||c==10||c>=32&&c!=127)out.add(s.charAt(i));
+            i++;
+        }
+        return StringTools.trim(out.toString()).substr(0,max);
     }
     static function number(o:Dynamic, name:String, fallback:Float, min:Float, max:Float):Float {
         var v:Dynamic = o == null ? null : Reflect.field(o,name);
@@ -88,19 +115,27 @@ class Config {
         try o=haxe.Json.parse(text) catch (_:Dynamic) return c;
         if (o==null || !Reflect.isObject(o) || Std.isOfType(o,Array) || Std.isOfType(o,String)) return c;
         c.hotkey=5;
+        var key=KeyBinding.clean(str(o,"panelKey",24,KeyBinding.DEFAULT_NAME),Std.int(number(o,"panelMods",0,0,7)));c.panelKey=key.name;c.panelMods=key.mods;
+        c.quickLeaveChip=flag(o,"quickLeaveChip",false);c.showLogo=flag(o,"showLogo",true);
+        c.launcherX=number(o,"launcherX",-1,-1,1);c.launcherY=number(o,"launcherY",-1,-1,1);
+        if(c.launcherX<0||c.launcherY<0){c.launcherX=-1;c.launcherY=-1;}
+        c.launcherLocked=flag(o,"launcherLocked",false);c.launcherTransparent=flag(o,"launcherTransparent",false);
         if(number(o,"hotkey",5,1,12)!=5)c.migrated=true;
-        c.steamId=str(o,"steamId",32,"");c.relayEnabled=number(o,"networkVersion",0,0,3)<3?true:flag(o,"relayEnabled",true);
+        c.steamId=str(o,"steamId",32,"");if(c.steamId!=""&&!SteamContact.valid(c.steamId)){c.steamId="";c.migrated=true;}c.relayEnabled=number(o,"networkVersion",0,0,3)<3?true:flag(o,"relayEnabled",true);
         if(number(o,"networkVersion",0,0,3)<3)c.migrated=true;
         c.shareSteamPublic=flag(o,"shareSteamPublic",false);
+        c.fareverOwner=str(o,"fareverOwner",128);
+        c.fareverCode=FareverContact.format(str(o,"fareverCode",32));
+        c.shareFareverPublic=flag(o,"shareFareverPublic",false);
         if(number(o,"steamPrivacyVersion",0,0,1)<1){c.shareSteamPublic=false;c.migrated=true;}
         c.monitoredChannels=number(o,"version",0,0,4)<4?ChannelPolicy.names.copy():[for(v in words(Reflect.field(o,"monitoredChannels"),ChannelPolicy.names,32,6))if(ChannelPolicy.known(v))v];
         c.requireRecruitingContext=flag(o,"requireRecruitingContext",false);
         c.expirySeconds=Std.int(number(o,"expirySeconds",300,60,1800));
         c.textScale=number(o,"textScale",1,0.85,1.5);
         c.highContrast=flag(o,"highContrast",false); c.reminder=flag(o,"reminder",false);
-        c.width=number(o,"width",1440,520,32768); c.height=number(o,"height",900,360,32768);
+        c.width=number(o,"width",1180,520,32768); c.height=number(o,"height",740,360,32768);
         if(number(o,"geometryVersion",0,0,2)<2){
-            c.width=Math.max(1440,c.width);c.height=Math.max(900,c.height);c.migrated=true;
+            c.width=Math.max(1180,c.width);c.height=Math.max(740,c.height);c.migrated=true;
         }
         c.windowX=number(o,"windowX",-1,-1,32000);c.windowY=number(o,"windowY",-1,-1,32000);
         c.theme=str(o,"theme",24,"Midnight");
